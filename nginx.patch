@@ -1,0 +1,51 @@
+diff --git a/src/http/ngx_http_upstream.c b/src/http/ngx_http_upstream.c
+index ed86a38..19708d0 100644
+--- a/src/http/ngx_http_upstream.c
++++ b/src/http/ngx_http_upstream.c
+@@ -4146,6 +4146,17 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
+     uscf->line = cf->conf_file->line;
+     uscf->port = u->port;
+     uscf->default_port = u->default_port;
++#if (NGX_HTTP_HEALTHCHECK)
++    uscf->healthcheck_enabled = 0;
++    uscf->health_delay = 10000;
++    uscf->health_timeout = 2000;
++    uscf->health_failcount = 2;
++    uscf->health_buffersize = 1000;
++    uscf->health_send.data = (u_char*)"";
++    uscf->health_send.len = 0;
++    uscf->health_expected.len = NGX_CONF_UNSET_SIZE;
++    uscf->health_expected.data = NGX_CONF_UNSET_PTR;
++#endif
+ 
+     if (u->naddrs == 1) {
+         uscf->servers = ngx_array_create(cf->pool, 1,
+diff --git a/src/http/ngx_http_upstream.h b/src/http/ngx_http_upstream.h
+index 97ec71b..ff2772a 100644
+--- a/src/http/ngx_http_upstream.h
++++ b/src/http/ngx_http_upstream.h
+@@ -111,6 +111,24 @@ struct ngx_http_upstream_srv_conf_s {
+     ngx_uint_t                       retries;
+ #endif
+ 
++#if (NGX_HTTP_HEALTHCHECK)
++    // If true, healthchecking is enabled for this upstream
++    unsigned                         healthcheck_enabled:1;
++    // Delay between healthchecks (in sec)
++    time_t                           health_delay;
++    // Total time a healthcheck is allowed to execute
++    ngx_msec_t                       health_timeout;
++    // Number of good/bad results indicate the node is up/down
++    ngx_int_t                        health_failcount;
++    // Size of the body+headers buffer
++    ngx_int_t                        health_buffersize;
++    // What is sent to initiate the healthcheck
++    ngx_str_t                        health_send;
++    // Expected from healthcheck, excluding headers
++    ngx_str_t                        health_expected;
++#endif
++
++
+     ngx_uint_t                       flags;
+     ngx_str_t                        host;
+     u_char                          *file_name;

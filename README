@@ -9,7 +9,7 @@ Note this also gives you access to a health status page that lets you see
 how well your healthcheck are doing.
 
 
-:::::Important:::::
+==Important=
 Nginx gives you full freedom which server peer to pick when you write an
 upstream.  This means that the healthchecking plugin is only a tool that
 other upstreams must know about to use.  So your upstream code MUST SUPPORT
@@ -17,5 +17,17 @@ HEALTHCHECKS.  It's actually pretty easy to modify the code to support them.
 
 See the .h file for how as well as the upstream_hash patch which shows
 how to modify upstream_hash to support healthchecks.
+
+==INSTALL==
+# Similar to the upstream_hash module
+
+cd nginx-0.7.62 # or whatever
+patch -p1 < /path/to/this/directory/nginx.patch
+./configure --add-module=/path/to/this/directory
+make
+make install
+
+==Config==
+See sample_ngx_config.conf
 
 Author: Jack Lindamood <jack@facebook.com>
