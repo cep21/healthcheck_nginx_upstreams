@@ -1,0 +1,21 @@
+Healthcheck plugin for nginx.  It polls backends and if they respond with
+HTTP 200 + an optional request body, they are marked good.  Otherwise, they
+are marked bad.
+
+For help on all the options, see the docblocks inside the .c file where each
+option is defined.
+
+Note this also gives you access to a health status page that lets you see
+how well your healthcheck are doing.
+
+
+:::::Important:::::
+Nginx gives you full freedom which server peer to pick when you write an
+upstream.  This means that the healthchecking plugin is only a tool that
+other upstreams must know about to use.  So your upstream code MUST SUPPORT
+HEALTHCHECKS.  It's actually pretty easy to modify the code to support them.
+
+See the .h file for how as well as the upstream_hash patch which shows
+how to modify upstream_hash to support healthchecks.
+
+Author: Jack Lindamood <jack@facebook.com>
