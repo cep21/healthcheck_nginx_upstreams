@@ -31,3 +31,7 @@ make install
 See sample_ngx_config.conf
 
 Author: Jack Lindamood <jack@facebook.com>
+
+==License==
+
+Apache License, Version 2.0
