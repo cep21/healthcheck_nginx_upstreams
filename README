@@ -18,6 +18,11 @@ HEALTHCHECKS.  It's actually pretty easy to modify the code to support them.
 See the .h file for how as well as the upstream_hash patch which shows
 how to modify upstream_hash to support healthchecks.
 
+For an example plugin modified to support healthchecks, see my modifications
+to the upstream_hash plugin here:
+
+http://github.com/cep21/nginx_upstream_hash/tree/support_http_healthchecks
+
 ==INSTALL==
 # Similar to the upstream_hash module
 
