@@ -844,7 +844,7 @@ static ngx_int_t ngx_http_healthcheck_status_handler(ngx_http_request_t *r) {
         "\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
         "<html xmlns=\"http://www.w3.org/1999/xhtml\">\n"
         "<head>\n"
-        "  <title>The W3C Markup Validation Service</title>\n"
+        "  <title>NGINX Healthcheck status</title>\n"
         "</head>\n"
         "<body>\n"
         "<table border=\"1\">\n"
