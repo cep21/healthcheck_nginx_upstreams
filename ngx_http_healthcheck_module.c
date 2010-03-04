@@ -868,15 +868,15 @@ static ngx_int_t ngx_http_healthcheck_status_handler(ngx_http_request_t *r) {
 
       tmp->last = ngx_snprintf(tmp->pos, tmp->end - tmp->pos,
         "  <tr>\n"
-        "    <th>%d</th>\n" // Index
-        "    <th>%V</th>\n" // Name
-        "    <th>%P</th>\n" // PID
-        "    <th>%M</th>\n" // action time
-        "    <th>%i</th>\n" // concurrent status values
-        "    <th>%M</th>\n" // Time concurrent
-        "    <th>%d</th>\n" // Last response down?
-        "    <th>%s</th>\n" // Code of last response
-        "    <th>%A</th>\n" // Is down?
+        "    <td>%d</td>\n" // Index
+        "    <td>%V</td>\n" // Name
+        "    <td>%P</td>\n" // PID
+        "    <td>%M</td>\n" // action time
+        "    <td>%i</td>\n" // concurrent status values
+        "    <td>%M</td>\n" // Time concurrent
+        "    <td>%d</td>\n" // Last response down?
+        "    <td>%s</td>\n" // Code of last response
+        "    <td>%A</td>\n" // Is down?
         "  </tr>\n", stat->index, &stat->peer->name, shm->owner,
                      shm->action_time, shm->concurrent,
                      shm->since, (int)shm->last_down,
