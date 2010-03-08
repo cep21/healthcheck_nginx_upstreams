@@ -68,7 +68,11 @@ typedef struct {
     // Upstream this peer belongs to
     ngx_http_upstream_srv_conf_t    *conf;
     // The peer to check
+#if defined(nginx_version) && nginx_version >= 8022
+    ngx_addr_t                      *peer;
+#else
     ngx_peer_addr_t                 *peer;
+#endif
     // Index of the peer.  Matches shm segment and is used for 'down' checking
     //  by external clients
     ngx_uint_t                       index;
@@ -729,7 +733,11 @@ ngx_http_healthcheck_init_zone(ngx_shm_zone_t *shm_zone, void *data) {
 // --- BEGIN PUBLIC METHODS ---
 ngx_int_t
 ngx_http_healthcheck_add_peer(ngx_http_upstream_srv_conf_t *uscf,
+#if defined(nginx_version) && nginx_version >= 8022
+        ngx_addr_t *peer, ngx_pool_t *pool) {
+#else
         ngx_peer_addr_t *peer, ngx_pool_t *pool) {
+#endif
     ngx_http_healthcheck_status_t *status;
     status = ngx_array_push(ngx_http_healthchecks_arr);
     if (status == NULL) {

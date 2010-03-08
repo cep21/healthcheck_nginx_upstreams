@@ -1,6 +1,10 @@
 #ifndef _NGX_HEALTHCHECK_MODULE_H_
 #define _NGX_HEALTHCHECK_MODULE_H_
 
+#include <ngx_core.h>
+#include <ngx_http.h>
+#include <nginx.h>
+
 // I don't define everything here, just the stuff external users will
 // want to call
 
@@ -14,8 +18,13 @@
  * @return Integer identifier for this healthcheck or NGX_ERROR if stuff
  * went bad.
  */
+#if defined(nginx_version) && nginx_version >= 8022
+ngx_int_t ngx_http_healthcheck_add_peer(ngx_http_upstream_srv_conf_t *uscf,
+    ngx_addr_t *peer, ngx_pool_t *pool);
+#else
 ngx_int_t ngx_http_healthcheck_add_peer(ngx_http_upstream_srv_conf_t *uscf,
     ngx_peer_addr_t *peer, ngx_pool_t *pool);
+#endif
 
 /**
  * Check the health of a peer
