@@ -9,6 +9,11 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 #include <ngx_http_healthcheck_module.h>
+#include <ngx_supervisord.h>
+
+#if (NGX_SUPERVISORD_API_VERSION != 2)
+  #error "ngx_http_upstream_fair_module requires NGX_SUPERVISORD_API v2"
+#endif
 
 #if (!NGX_HAVE_ATOMIC_OPS)
 #error "Healthcheck module only works with atmoic ops"
@@ -256,6 +261,8 @@ ngx_module_t  ngx_http_healthcheck_module = {
 
 
 void ngx_http_healthcheck_mark_finished(ngx_http_healthcheck_status_t *stat) {
+    ngx_http_upstream_rr_peers_t  *peers = stat->conf->peer.data;
+
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, stat->health_ev.log, 0,
             "healthcheck: Finished %V, state %d", &stat->peer->name,
             stat->state);
@@ -264,6 +271,10 @@ void ngx_http_healthcheck_mark_finished(ngx_http_healthcheck_status_t *stat) {
             stat->shm->last_down = 0;
             stat->shm->concurrent = 1;
             stat->shm->since = ngx_current_msec;
+            (void) ngx_supervisord_execute(stat->conf,
+                                           NGX_SUPERVISORD_CMD_START,
+                                           peers->peer[stat->index].onumber,
+                                           NULL);
         } else {
             stat->shm->concurrent++;
         }
@@ -274,6 +285,10 @@ void ngx_http_healthcheck_mark_finished(ngx_http_healthcheck_status_t *stat) {
             stat->shm->last_down = 1;
             stat->shm->concurrent = 1;
             stat->shm->since = ngx_current_msec;
+            (void) ngx_supervisord_execute(stat->conf,
+                                           NGX_SUPERVISORD_CMD_STOP,
+                                           peers->peer[stat->index].onumber,
+                                           NULL);
         }
     }
     if (stat->shm->concurrent >= stat->conf->health_failcount) {
