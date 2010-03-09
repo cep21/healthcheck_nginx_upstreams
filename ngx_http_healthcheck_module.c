@@ -11,7 +11,7 @@
 #include <ngx_http_healthcheck_module.h>
 
 #if (!NGX_HAVE_ATOMIC_OPS)
-#error "Healthcheck module only works with atmoic ops"
+#error "Healthcheck module only works with atomic ops"
 #endif
 
 typedef enum {
@@ -100,7 +100,8 @@ typedef struct {
 // This one is not shared. Created when the config is parsed
 static ngx_array_t                   *ngx_http_healthchecks_arr;
 // This is the same as the above data ->elts.  For ease of use
-static ngx_http_healthcheck_status_t     *ngx_http_healthchecks;
+#define ngx_http_healthchecks \
+  ((ngx_http_healthcheck_status_t*) ngx_http_healthchecks_arr->elts)
 static ngx_http_healthcheck_status_shm_t *ngx_http_healthchecks_shm;
 
 static ngx_int_t ngx_http_healthcheck_init(ngx_conf_t *cf);
@@ -300,7 +301,7 @@ void ngx_http_healthcheck_write_handler(ngx_event_t *wev) {
 
     if (stat->state != NGX_HEALTH_SENDING_CHECK) {
         ngx_log_debug(NGX_LOG_DEBUG_HTTP, wev->log, 0,
-                "healthcheck: Ignoring a write.  Not in writting state");
+                "healthcheck: Ignoring a write.  Not in writing state");
         return;
     }
 
@@ -503,6 +504,7 @@ static ngx_int_t ngx_http_healthcheck_process_recv(
 static void ngx_http_healthcheck_begin_healthcheck(ngx_event_t *event) {
     ngx_http_healthcheck_status_t * stat;
     ngx_connection_t        *c;
+    ngx_int_t rc;
 
     stat = event->data;
     if (stat->state != NGX_HEALTH_WAITING) {
@@ -530,7 +532,23 @@ static void ngx_http_healthcheck_begin_healthcheck(ngx_event_t *event) {
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, event->log, 0,
             "healthcheck: Connecting peer", stat->index);
 
-    ngx_event_connect_peer(stat->pc);
+    rc = ngx_event_connect_peer(stat->pc);
+    if (rc == NGX_ERROR || rc == NGX_BUSY || rc == NGX_DECLINED) {
+      ngx_log_error(NGX_LOG_CRIT, event->log, 0,
+        "healthcheck: Could not connect to peer.  This is"
+        " pretty bad and probably means your health checks won't"
+        " work anymore: %d", rc);
+      if (stat->pc->connection) {
+          ngx_close_connection(stat->pc->connection);
+      }
+      // Try to do it again later, but if you're getting errors when you
+      // try to connect to a peer, this probably won't work
+      ngx_add_timer(&stat->health_ev, stat->conf->health_delay);
+      return;
+    }
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, event->log, 0,
+      "healthcheck: connected so far");
+
 
     c = stat->pc->connection;
     c->data = stat;
@@ -550,6 +568,9 @@ static void ngx_http_healthcheck_begin_healthcheck(ngx_event_t *event) {
     stat->read_buffer->last = stat->read_buffer->start;
     stat->check_start_time = ngx_current_msec;
     ngx_add_timer(c->read, stat->conf->health_timeout);
+    ngx_log_debug(NGX_LOG_DEBUG_HTTP, event->log, 0,
+            "healthcheck: Peer connected", stat->index);
+
 }
 
 static void ngx_http_healthcheck_try_for_ownership(ngx_event_t *event) {
@@ -659,7 +680,6 @@ static ngx_int_t ngx_http_healthcheck_init(ngx_conf_t *cf) {
     ngx_uint_t         i;
 
     if (ngx_http_healthchecks_arr->nelts == 0) {
-      ngx_http_healthchecks = NULL;
       ngx_http_healthchecks_shm = NULL;
       return NGX_OK;
     }
@@ -678,7 +698,6 @@ static ngx_int_t ngx_http_healthcheck_init(ngx_conf_t *cf) {
     }
     shm_zone->init = ngx_http_healthcheck_init_zone;
 
-    ngx_http_healthchecks = ngx_http_healthchecks_arr->elts;
     for (i=0; i<ngx_http_healthchecks_arr->nelts; i++) {
       // I'm not sure what 'temp' means.... when is it removed?
       ngx_http_healthchecks[i].read_buffer = ngx_create_temp_buf(cf->pool,
@@ -790,6 +809,8 @@ ngx_buf_t* ngx_http_healthcheck_buf_append(ngx_buf_t *dst, ngx_buf_t *src,
         ngx_memcpy(new_buf->last, dst->pos, (dst->last - dst->pos));
         new_buf->last += (dst->last - dst->pos);
         // TODO: I don't think there's a way to uncreate the dst buffer (??)
+        // Should be ok because these are small and cleared at the end of
+        // the status request
         dst = new_buf;
     }
     ngx_memcpy(dst->last, src->pos, (src->last - src->pos));
@@ -1042,3 +1063,5 @@ static char* ngx_http_set_healthcheck_status(ngx_conf_t *cf, ngx_command_t *cmd,
 
     return NGX_CONF_OK;
 }
+
+#undef ngx_http_healthchecks
