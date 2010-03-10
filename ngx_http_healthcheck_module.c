@@ -307,19 +307,25 @@ void ngx_http_healthcheck_mark_finished(ngx_http_healthcheck_status_t *stat) {
     stat->shm->action_time = ngx_current_msec;
 }
 
+void ngx_http_healthcheck_send_request(ngx_connection_t *);
+
 void ngx_http_healthcheck_write_handler(ngx_event_t *wev) {
     ngx_connection_t        *c;
-    ssize_t size;
-    ngx_http_healthcheck_status_t *stat;
 
     c = wev->data;
-    stat = c->data;
 
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, wev->log, 0,
             "healthcheck: Write handler called");
 
+    ngx_http_healthcheck_send_request(c);
+}
+
+void ngx_http_healthcheck_send_request(ngx_connection_t *c) {
+    ngx_http_healthcheck_status_t *stat = c->data;
+    ssize_t size;
+
     if (stat->state != NGX_HEALTH_SENDING_CHECK) {
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, wev->log, 0,
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, c->log, 0,
                 "healthcheck: Ignoring a write.  Not in writing state");
         return;
     }
@@ -328,7 +334,7 @@ void ngx_http_healthcheck_write_handler(ngx_event_t *wev) {
         size =
             c->send(c, stat->conf->health_send.data + stat->send_pos,
                     stat->conf->health_send.len - stat->send_pos);
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, wev->log, 0,
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, c->log, 0,
                 "healthcheck: Send size %d", size);
         if (size == NGX_ERROR || size == 0) {
             // If the send fails, the connection is bad.  Close it out
@@ -346,11 +352,11 @@ void ngx_http_healthcheck_write_handler(ngx_event_t *wev) {
     } while (stat->send_pos < (ssize_t)stat->conf->health_send.len);
 
     if (stat->send_pos > (ssize_t)stat->conf->health_send.len) {
-        ngx_log_error(NGX_LOG_WARN, wev->log, 0,
+        ngx_log_error(NGX_LOG_WARN, c->log, 0,
             "healthcheck: Logic error.  %d send pos bigger than buffer len %d",
                 stat->send_pos, stat->conf->health_send.len);
     } else if (stat->send_pos == (ssize_t)stat->conf->health_send.len) {
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, wev->log, 0,
+        ngx_log_debug(NGX_LOG_DEBUG_HTTP, c->log, 0,
                 "healthcheck: Finished sending request");
         stat->state = NGX_HEALTH_READING_STAT_LINE;
     }
@@ -590,6 +596,7 @@ static void ngx_http_healthcheck_begin_healthcheck(ngx_event_t *event) {
     ngx_log_debug(NGX_LOG_DEBUG_HTTP, event->log, 0,
             "healthcheck: Peer connected", stat->index);
 
+    ngx_http_healthcheck_send_request(c);
 }
 
 static void ngx_http_healthcheck_try_for_ownership(ngx_event_t *event) {
