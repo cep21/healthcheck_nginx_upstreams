@@ -21,8 +21,9 @@ ngx_int_t ngx_http_healthcheck_add_peer(ngx_http_upstream_srv_conf_t *uscf,
  * Check the health of a peer
  *
  * @param index Integer identifier index to check
+ * @param log Gets warning and error messages
  * @return True if the given peer has failed its healthcheck
  */
-ngx_int_t ngx_http_healthcheck_is_down(ngx_uint_t index);
+ngx_int_t ngx_http_healthcheck_is_down(ngx_uint_t index, ngx_log_t *log);
 
 #endif
