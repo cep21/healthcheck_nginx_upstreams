@@ -23,6 +23,12 @@ to the upstream_hash plugin here:
 
 http://github.com/cep21/nginx_upstream_hash/tree/support_http_healthchecks
 
+==Limitations==
+The module only supports HTTP 1.0, not 1.1.  What that really means is it
+doesn't understand chunked encoding.  You should ask for a 1.0 reponse with
+your healthcheck, unless you're sure the upstream won't send back chunked
+encoding.  See the sample config for an example.
+
 ==INSTALL==
 # Similar to the upstream_hash module
 
