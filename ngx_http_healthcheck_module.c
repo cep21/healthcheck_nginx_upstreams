@@ -69,7 +69,11 @@ typedef struct {
     // Upstream this peer belongs to
     ngx_http_upstream_srv_conf_t    *conf;
     // The peer to check
+#if defined(nginx_version) && nginx_version >= 8022
+    ngx_addr_t                      *peer;
+#else
     ngx_peer_addr_t                 *peer;
+#endif
     // Index of the peer.  Matches shm segment and is used for 'down' checking
     //  by external clients
     ngx_uint_t                       index;
@@ -295,19 +299,25 @@ void ngx_http_healthcheck_mark_finished(ngx_http_healthcheck_status_t *stat) {
     stat->shm->action_time = ngx_current_msec;
 }
 
+void ngx_http_healthcheck_send_request(ngx_connection_t *);
+
 void ngx_http_healthcheck_write_handler(ngx_event_t *wev) {
     ngx_connection_t        *c;
-    ssize_t size;
-    ngx_http_healthcheck_status_t *stat;
 
     c = wev->data;
-    stat = c->data;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, wev->log, 0,
             "healthcheck: Write handler called");
 
+    ngx_http_healthcheck_send_request(c);
+}
+
+void ngx_http_healthcheck_send_request(ngx_connection_t *c) {
+    ngx_http_healthcheck_status_t *stat = c->data;
+    ssize_t size;
+
     if (stat->state != NGX_HEALTH_SENDING_CHECK) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, wev->log, 0,
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
                 "healthcheck: Ignoring a write.  Not in writing state");
         return;
     }
@@ -316,7 +326,7 @@ void ngx_http_healthcheck_write_handler(ngx_event_t *wev) {
         size =
             c->send(c, stat->conf->health_send.data + stat->send_pos,
                     stat->conf->health_send.len - stat->send_pos);
-        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, wev->log, 0,
+        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                 "healthcheck: Send size %z", size);
         if (size == NGX_ERROR || size == 0) {
             // If the send fails, the connection is bad.  Close it out
@@ -334,11 +344,11 @@ void ngx_http_healthcheck_write_handler(ngx_event_t *wev) {
     } while (stat->send_pos < (ssize_t)stat->conf->health_send.len);
 
     if (stat->send_pos > (ssize_t)stat->conf->health_send.len) {
-        ngx_log_error(NGX_LOG_WARN, wev->log, 0,
+        ngx_log_error(NGX_LOG_WARN, c->log, 0,
             "healthcheck: Logic error.  %z send pos bigger than buffer len %i",
                 stat->send_pos, stat->conf->health_send.len);
     } else if (stat->send_pos == (ssize_t)stat->conf->health_send.len) {
-        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, wev->log, 0,
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
                 "healthcheck: Finished sending request");
         stat->state = NGX_HEALTH_READING_STAT_LINE;
     }
@@ -584,6 +594,7 @@ static void ngx_http_healthcheck_begin_healthcheck(ngx_event_t *event) {
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, event->log, 0,
             "healthcheck: Peer connected", stat->index);
 
+    ngx_http_healthcheck_send_request(c);
 }
 
 static void ngx_http_healthcheck_try_for_ownership(ngx_event_t *event) {
@@ -762,7 +773,11 @@ ngx_http_healthcheck_init_zone(ngx_shm_zone_t *shm_zone, void *data) {
 // --- BEGIN PUBLIC METHODS ---
 ngx_int_t
 ngx_http_healthcheck_add_peer(ngx_http_upstream_srv_conf_t *uscf,
+#if defined(nginx_version) && nginx_version >= 8022
+        ngx_addr_t *peer, ngx_pool_t *pool) {
+#else
         ngx_peer_addr_t *peer, ngx_pool_t *pool) {
+#endif
     ngx_http_healthcheck_status_t *status;
     status = ngx_array_push(ngx_http_healthchecks_arr);
     if (status == NULL) {
