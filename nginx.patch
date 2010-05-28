@@ -49,8 +49,8 @@ index 97ec71b..ff2772a 100644
      ngx_uint_t                       flags;
      ngx_str_t                        host;
      u_char                          *file_name;
---- src/http/ngx_http_upstream_round_robin.c.orig	Mon Mar  8 20:55:32 2010
-+++ src/http/ngx_http_upstream_round_robin.c	Mon Mar  8 21:03:17 2010
+--- a/src/http/ngx_http_upstream_round_robin.c	Mon Mar  8 20:55:32 2010
++++ b/src/http/ngx_http_upstream_round_robin.c	Mon Mar  8 21:03:17 2010
 @@ -4,6 +4,8 @@
   */
  
@@ -83,8 +83,8 @@ index 97ec71b..ff2772a 100644
  
                  peers->peer[n].sockaddr = server[i].addrs[j].sockaddr;
                  peers->peer[n].socklen = server[i].addrs[j].socklen;
---- src/http/ngx_http_upstream_round_robin.h.orig	Mon Mar  8 21:00:58 2010
-+++ src/http/ngx_http_upstream_round_robin.h	Mon Mar  8 21:00:06 2010
+--- a/src/http/ngx_http_upstream_round_robin.h	Mon Mar  8 21:00:58 2010
++++ b/src/http/ngx_http_upstream_round_robin.h	Mon Mar  8 21:00:06 2010
 @@ -28,6 +28,7 @@
  
      ngx_uint_t                      max_fails;
