@@ -967,6 +967,7 @@ static ngx_int_t ngx_http_healthcheck_status_handler(ngx_http_request_t *r) {
     }
 
     tmp->last = ngx_snprintf(tmp->pos, tmp->end - tmp->pos,
+        "</table>\n"
         "</body>\n"
         "</html>\n");
     NGX_HEALTH_APPEND_CHECK(b, tmp, r->pool);
