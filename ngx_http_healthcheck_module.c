@@ -108,11 +108,14 @@ typedef struct {
     ngx_http_healthcheck_status_shm_t *shm;
 } ngx_http_healthcheck_status_t;
 
+
 // This one is not shared. Created when the config is parsed
 static ngx_array_t                   *ngx_http_healthchecks_arr;
+
 // This is the same as the above data ->elts.  For ease of use
 #define ngx_http_healthchecks \
   ((ngx_http_healthcheck_status_t*) ngx_http_healthchecks_arr->elts)
+
 static ngx_http_healthcheck_status_shm_t *ngx_http_healthchecks_shm;
 
 static ngx_int_t ngx_http_healthcheck_init(ngx_conf_t *cf);
@@ -269,10 +272,13 @@ ngx_module_t  ngx_http_healthcheck_module = {
 };
 
 
-void ngx_http_healthcheck_mark_finished(ngx_http_healthcheck_status_t *stat) {
+void 
+ngx_http_healthcheck_mark_finished(ngx_http_healthcheck_status_t *stat)
+{
 #ifdef NGX_SUPERVISORD_MODULE
     ngx_http_upstream_rr_peers_t  *peers = stat->conf->peer.data;
 #endif
+
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, stat->health_ev.log, 0,
             "healthcheck: Finished %V, state %d", &stat->peer->name,
             stat->state);
@@ -313,16 +319,17 @@ void ngx_http_healthcheck_mark_finished(ngx_http_healthcheck_status_t *stat) {
     stat->pc->connection = NULL;
     stat->state = NGX_HEALTH_WAITING;
     if (!ngx_terminate && !ngx_exiting && !ngx_quit) {
-      ngx_add_timer(&stat->health_ev, stat->conf->health_delay);
+        ngx_add_timer(&stat->health_ev, stat->conf->health_delay);
     } else {
-      ngx_http_healthcheck_clear_events(stat->health_ev.log);
+        ngx_http_healthcheck_clear_events(stat->health_ev.log);
     }
     stat->shm->action_time = ngx_current_msec;
 }
 
 void ngx_http_healthcheck_send_request(ngx_connection_t *);
 
-void ngx_http_healthcheck_write_handler(ngx_event_t *wev) {
+void ngx_http_healthcheck_write_handler(ngx_event_t *wev)
+{
     ngx_connection_t        *c;
 
     c = wev->data;
@@ -333,9 +340,12 @@ void ngx_http_healthcheck_write_handler(ngx_event_t *wev) {
     ngx_http_healthcheck_send_request(c);
 }
 
-void ngx_http_healthcheck_send_request(ngx_connection_t *c) {
+
+void 
+ngx_http_healthcheck_send_request(ngx_connection_t *c)
+{
+    ssize_t                        size;
     ngx_http_healthcheck_status_t *stat = c->data;
-    ssize_t size;
 
     if (stat->state != NGX_HEALTH_SENDING_CHECK) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
@@ -344,8 +354,7 @@ void ngx_http_healthcheck_send_request(ngx_connection_t *c) {
     }
 
     do {
-        size =
-            c->send(c, stat->conf->health_send.data + stat->send_pos,
+        size = c->send(c, stat->conf->health_send.data + stat->send_pos,
                     stat->conf->health_send.len - stat->send_pos);
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->log, 0,
                 "healthcheck: Send size %z", size);
@@ -366,7 +375,7 @@ void ngx_http_healthcheck_send_request(ngx_connection_t *c) {
 
     if (stat->send_pos > (ssize_t)stat->conf->health_send.len) {
         ngx_log_error(NGX_LOG_WARN, c->log, 0,
-            "healthcheck: Logic error.  %z send pos bigger than buffer len %i",
+                "healthcheck: Logic error.  %z send pos bigger than buffer len %i",
                 stat->send_pos, stat->conf->health_send.len);
     } else if (stat->send_pos == (ssize_t)stat->conf->health_send.len) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0,
@@ -375,13 +384,16 @@ void ngx_http_healthcheck_send_request(ngx_connection_t *c) {
     }
 }
 
-void ngx_http_healthcheck_read_handler(ngx_event_t *rev) {
-    ngx_connection_t        *c;
+
+void 
+ngx_http_healthcheck_read_handler(ngx_event_t *rev) 
+{
+    ssize_t                  size;
     ngx_buf_t               *rb;
     ngx_int_t                rc;
-    ssize_t size;
-    ngx_http_healthcheck_status_t *stat;
     ngx_int_t                expect_finished;
+    ngx_connection_t        *c;
+    ngx_http_healthcheck_status_t *stat;
 
     c = rev->data;
     stat = c->data;
@@ -393,13 +405,16 @@ void ngx_http_healthcheck_read_handler(ngx_event_t *rev) {
     stat->shm->action_time = ngx_current_msec;
     if (ngx_current_msec - stat->check_start_time >=
             stat->conf->health_timeout) {
+
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0,
                 "healthcheck: timeout!");
         stat->state = NGX_HEALTH_TIMEOUT;
         ngx_http_healthcheck_mark_finished(stat);
+
         return;
     }
     expect_finished = 0;
+
     do {
         size = c->recv(c, rb->pos, rb->end - rb->pos);
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, rev->log, 0,
@@ -422,39 +437,40 @@ void ngx_http_healthcheck_read_handler(ngx_event_t *rev) {
     if (stat->state != NGX_HEALTH_BAD_CONN) {
         rc = ngx_http_healthcheck_process_recv(stat);
         switch (rc) {
-            case NGX_AGAIN:
-                if (expect_finished) {
-                    stat->state = NGX_HEALTH_EARLY_CLOSE;
-                    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0,
-                      "healthcheck: prematurely closed connection");
-                } else if (rb->end == rb->pos) {
-                    // We used up our read buffer and STILL can't verify
-                    stat->state = NGX_HEALTH_FULL_BUFFER;
-                    ngx_http_healthcheck_mark_finished(stat);
-                }
-                // We want more data to see if the body is OK or not
-                break;
-            case NGX_ERROR:
+        case NGX_AGAIN:
+            if (expect_finished) {
+                stat->state = NGX_HEALTH_EARLY_CLOSE;
+                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, rev->log, 0,
+                        "healthcheck: prematurely closed connection");
+            } else if (rb->end == rb->pos) {
+                // We used up our read buffer and STILL can't verify
+                stat->state = NGX_HEALTH_FULL_BUFFER;
                 ngx_http_healthcheck_mark_finished(stat);
-                break;
-            case NGX_OK:
-                ngx_http_healthcheck_mark_finished(stat);
-                break;
-            default:
-                ngx_log_error(NGX_LOG_WARN, rev->log, 0,
-                        "healthcheck: Unknown process_recv code %i", rc);
-                break;
+            }
+            // We want more data to see if the body is OK or not
+            break;
+        case NGX_ERROR:
+            ngx_http_healthcheck_mark_finished(stat);
+            break;
+        case NGX_OK:
+            ngx_http_healthcheck_mark_finished(stat);
+            break;
+        default:
+            ngx_log_error(NGX_LOG_WARN, rev->log, 0,
+                    "healthcheck: Unknown process_recv code %i", rc);
+            break;
         }
     } else {
         ngx_http_healthcheck_mark_finished(stat);
     }
 }
 
-static ngx_int_t ngx_http_healthcheck_process_recv(
-        ngx_http_healthcheck_status_t *stat) {
 
-    ngx_buf_t               *rb;
+static ngx_int_t 
+ngx_http_healthcheck_process_recv(ngx_http_healthcheck_status_t *stat)
+{
     u_char                   ch;
+    ngx_buf_t               *rb;
     ngx_str_t               *health_expected;
 
     rb = stat->read_buffer;
@@ -480,7 +496,9 @@ static ngx_int_t ngx_http_healthcheck_process_recv(
                     stat->state = NGX_HEALTH_BAD_STATUS;
                     return NGX_ERROR;
                 }
+
                 break;
+
             case NGX_HEALTH_READING_STAT_CODE:
                 if (ch == ' ') {
                     if (stat->stat_code != NGX_HTTP_OK /*200*/) {
@@ -495,12 +513,16 @@ static ngx_int_t ngx_http_healthcheck_process_recv(
                 } else {
                     stat->stat_code = stat->stat_code * 10 + (ch - '0');
                 }
+
                 break;
+
             case NGX_HEALTH_READING_HEADER:
                 if (ch == '\n') {
                     stat->state = NGX_HEALTH_HEADER_ALMOST_DONE;
                 }
+
                 break;
+
             case NGX_HEALTH_HEADER_ALMOST_DONE:
                 if (ch == '\n') {
                     if (health_expected->len == NGX_CONF_UNSET_SIZE) {
@@ -512,7 +534,9 @@ static ngx_int_t ngx_http_healthcheck_process_recv(
                 } else if (ch != '\r') {
                     stat->state = NGX_HEALTH_READING_HEADER;
                 }
+
                 break;
+
             case NGX_HEALTH_READING_BODY:
                 if (stat->body_read_pos == (ssize_t)health_expected->len) {
                     // Body was ok, but is now too long
@@ -525,7 +549,9 @@ static ngx_int_t ngx_http_healthcheck_process_recv(
                 } else {
                     stat->body_read_pos++;
                 }
+
                 break;
+
             default:
                 ngx_log_error(NGX_LOG_CRIT, stat->health_ev.log, 0,
                   "healthcheck: Logic error.  Invalid state: %d",
@@ -534,8 +560,9 @@ static ngx_int_t ngx_http_healthcheck_process_recv(
                 return NGX_ERROR;
         }
     }
+
     if (stat->state == NGX_HEALTH_READING_BODY &&
-          stat->body_read_pos == (ssize_t)health_expected->len) {
+            stat->body_read_pos == (ssize_t)health_expected->len) {
         stat->state = NGX_HEALTH_OK;
         return NGX_OK;
     } else if (stat->state == NGX_HEALTH_OK) {
@@ -545,10 +572,13 @@ static ngx_int_t ngx_http_healthcheck_process_recv(
     }
 }
 
-static void ngx_http_healthcheck_begin_healthcheck(ngx_event_t *event) {
-    ngx_http_healthcheck_status_t * stat;
-    ngx_connection_t        *c;
-    ngx_int_t rc;
+
+static void 
+ngx_http_healthcheck_begin_healthcheck(ngx_event_t *event)
+{
+    ngx_int_t                       rc;
+    ngx_connection_t               *c;
+    ngx_http_healthcheck_status_t  *stat;
 
     stat = event->data;
     if (stat->state != NGX_HEALTH_WAITING) {
@@ -578,20 +608,20 @@ static void ngx_http_healthcheck_begin_healthcheck(ngx_event_t *event) {
 
     rc = ngx_event_connect_peer(stat->pc);
     if (rc == NGX_ERROR || rc == NGX_BUSY || rc == NGX_DECLINED) {
-      ngx_log_error(NGX_LOG_CRIT, event->log, 0,
-        "healthcheck: Could not connect to peer.  This is"
-        " pretty bad and probably means your health checks won't"
-        " work anymore: %i", rc);
-      if (stat->pc->connection) {
-          ngx_close_connection(stat->pc->connection);
-      }
-      // Try to do it again later, but if you're getting errors when you
-      // try to connect to a peer, this probably won't work
-      ngx_add_timer(&stat->health_ev, stat->conf->health_delay);
-      return;
+        ngx_log_error(NGX_LOG_CRIT, event->log, 0,
+                "healthcheck: Could not connect to peer.  This is"
+                " pretty bad and probably means your health checks won't"
+                " work anymore: %i", rc);
+        if (stat->pc->connection) {
+            ngx_close_connection(stat->pc->connection);
+        }
+        // Try to do it again later, but if you're getting errors when you
+        // try to connect to a peer, this probably won't work
+        ngx_add_timer(&stat->health_ev, stat->conf->health_delay);
+        return;
     }
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, event->log, 0,
-      "healthcheck: connected so far");
+            "healthcheck: connected so far");
 
 
     c = stat->pc->connection;
@@ -618,14 +648,17 @@ static void ngx_http_healthcheck_begin_healthcheck(ngx_event_t *event) {
     ngx_http_healthcheck_send_request(c);
 }
 
-static void ngx_http_healthcheck_try_for_ownership(ngx_event_t *event) {
-    ngx_http_healthcheck_status_t * stat;
+
+static void
+ngx_http_healthcheck_try_for_ownership(ngx_event_t *event) 
+{
     ngx_int_t                       i_own_it;
+    ngx_http_healthcheck_status_t * stat;
 
     stat = event->data;
     if (ngx_terminate || ngx_exiting || ngx_quit) {
-      ngx_http_healthcheck_clear_events(stat->health_ev.log);
-      return;
+        ngx_http_healthcheck_clear_events(stat->health_ev.log);
+        return;
     }
 
     i_own_it = 0;
@@ -658,8 +691,12 @@ static void ngx_http_healthcheck_try_for_ownership(ngx_event_t *event) {
     }
 }
 
-void ngx_http_healthcheck_clear_events(ngx_log_t *log) {
+
+void 
+ngx_http_healthcheck_clear_events(ngx_log_t *log)
+{
     ngx_uint_t i;
+
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, log, 0,
             "healthcheck: Clearing events");
 
@@ -671,19 +708,23 @@ void ngx_http_healthcheck_clear_events(ngx_log_t *log) {
     }
 }
 
-static ngx_int_t ngx_http_healthcheck_procinit(ngx_cycle_t *cycle) {
+static ngx_int_t 
+ngx_http_healthcheck_procinit(ngx_cycle_t *cycle) 
+{
     ngx_uint_t i;
     ngx_msec_t t;
 
     if (ngx_http_healthchecks_arr->nelts == 0) {
-      return NGX_OK;
+        return NGX_OK;
     }
 
      // Otherwise, the distribution isn't very random because each process
      // is a fork, so they all have the same seed
     srand(ngx_pid);
+
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, cycle->log, 0,
             "healthcheck: Adding events to worker process %P", ngx_pid);
+
     for (i=0; i<ngx_http_healthchecks_arr->nelts; i++) {
         ngx_http_healthchecks[i].shm = &ngx_http_healthchecks_shm[i];
 
@@ -709,28 +750,39 @@ static ngx_int_t ngx_http_healthcheck_procinit(ngx_cycle_t *cycle) {
             ngx_add_timer(&ngx_http_healthchecks[i].ownership_ev, t);
         }
     }
+
     return NGX_OK;
 }
 
-static ngx_int_t ngx_http_healthcheck_preconfig(ngx_conf_t *cf) {
+
+static ngx_int_t 
+ngx_http_healthcheck_preconfig(ngx_conf_t *cf)
+{
+
     ngx_http_healthchecks_arr = ngx_array_create(cf->pool, 10,
             sizeof(ngx_http_healthcheck_status_t));
+
     if (ngx_http_healthchecks_arr == NULL) {
         return NGX_ERROR;
     }
+
     return NGX_OK;
 }
 
-static ngx_int_t ngx_http_healthcheck_init(ngx_conf_t *cf) {
+
+static ngx_int_t 
+ngx_http_healthcheck_init(ngx_conf_t *cf)
+{
     ngx_str_t        *shm_name;
+    ngx_uint_t        i;
     ngx_shm_zone_t   *shm_zone;
-    ngx_uint_t         i;
+
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0,
       "healthcheck: healthcheck_init");
 
     if (ngx_http_healthchecks_arr->nelts == 0) {
-      ngx_http_healthchecks_shm = NULL;
-      return NGX_OK;
+        ngx_http_healthchecks_shm = NULL;
+        return NGX_OK;
     }
 
     shm_name = ngx_palloc(cf->pool, sizeof *shm_name);
@@ -741,31 +793,32 @@ static ngx_int_t ngx_http_healthcheck_init(ngx_conf_t *cf) {
     shm_zone = ngx_shared_memory_add(cf, shm_name,
             ngx_pagesize * (ngx_http_healthchecks_arr->nelts + 1),
             &ngx_http_healthcheck_module);
-
     if (shm_zone == NULL) {
         return NGX_ERROR;
     }
+
     shm_zone->init = ngx_http_healthcheck_init_zone;
 
     for (i=0; i<ngx_http_healthchecks_arr->nelts; i++) {
-      // It says 'temp', but it should last forever-ish
-      ngx_http_healthchecks[i].read_buffer = ngx_create_temp_buf(cf->pool,
-          ngx_http_healthchecks[i].conf->health_buffersize);
-      if (ngx_http_healthchecks[i].read_buffer  == NULL) {
-          return NGX_ERROR;
-      }
+        // It says 'temp', but it should last forever-ish
+        ngx_http_healthchecks[i].read_buffer = ngx_create_temp_buf(cf->pool,
+                ngx_http_healthchecks[i].conf->health_buffersize);
+        if (ngx_http_healthchecks[i].read_buffer  == NULL) {
+            return NGX_ERROR;
+        }
     }
 
     return NGX_OK;
 }
 
 static ngx_int_t
-ngx_http_healthcheck_init_zone(ngx_shm_zone_t *shm_zone, void *data) {
+ngx_http_healthcheck_init_zone(ngx_shm_zone_t *shm_zone, void *data) 
+{
     ngx_uint_t                       i;
-    ngx_slab_pool_t                *shpool;
+    ngx_slab_pool_t                 *shpool;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, shm_zone->shm.log, 0,
-      "healthcheck: Init zone");
+            "healthcheck: Init zone");
 
     // If we're being HUP'd, I can't just use the same 'data' segment because
     // the number of servers may of changed.  Instead, I need to recreate a
@@ -779,6 +832,7 @@ ngx_http_healthcheck_init_zone(ngx_shm_zone_t *shm_zone, void *data) {
     if (ngx_http_healthchecks_shm == NULL) {
         return NGX_ERROR;
     }
+
     for (i=0; i<ngx_http_healthchecks_arr->nelts; i++) {
         ngx_http_healthchecks_shm[i].index = i;
         ngx_http_healthchecks_shm[i].action_time = 0;
@@ -795,15 +849,18 @@ ngx_http_healthcheck_init_zone(ngx_shm_zone_t *shm_zone, void *data) {
 ngx_int_t
 ngx_http_healthcheck_add_peer(ngx_http_upstream_srv_conf_t *uscf,
 #if defined(nginx_version) && nginx_version >= 8022
-        ngx_addr_t *peer, ngx_pool_t *pool) {
+        ngx_addr_t *peer, ngx_pool_t *pool)
+{
 #else
-        ngx_peer_addr_t *peer, ngx_pool_t *pool) {
+        ngx_peer_addr_t *peer, ngx_pool_t *pool) 
+{
 #endif
     ngx_http_healthcheck_status_t *status;
     status = ngx_array_push(ngx_http_healthchecks_arr);
     if (status == NULL) {
         return NGX_ERROR;
     }
+
     status->conf = uscf;
     status->peer = peer;
     status->index = ngx_http_healthchecks_arr->nelts - 1;
@@ -811,24 +868,28 @@ ngx_http_healthcheck_add_peer(ngx_http_upstream_srv_conf_t *uscf,
     if (status->pc == NULL) {
         return NGX_ERROR;
     }
+
     return ngx_http_healthchecks_arr->nelts - 1;
 }
 
-ngx_int_t ngx_http_healthcheck_is_down(ngx_uint_t index, ngx_log_t *log) {
+ngx_int_t 
+ngx_http_healthcheck_is_down(ngx_uint_t index, ngx_log_t *log)
+{
     if (index >= ngx_http_healthchecks_arr->nelts) {
         ngx_log_error(NGX_LOG_CRIT, log, 0,
-            "healthcheck: Invalid index to is_down: %i", index);
+                "healthcheck: Invalid index to is_down: %i", index);
         return 0;
     } else {
         return ngx_http_healthchecks[index].conf->healthcheck_enabled &&
-          ngx_http_healthchecks[index].shm->down;
+            ngx_http_healthchecks[index].shm->down;
     }
 }
 // --- END PUBLIC METHODS ---
 
 // Health status page
-static char* ngx_http_healthcheck_statestr(
-    ngx_http_health_state state) {
+static char* 
+ngx_http_healthcheck_statestr(ngx_http_health_state state)
+{
     switch (state) {
         case NGX_HEALTH_OK:
             return  "OK";
@@ -855,8 +916,10 @@ static char* ngx_http_healthcheck_statestr(
   }
 }
 
-ngx_buf_t* ngx_http_healthcheck_buf_append(ngx_buf_t *dst, ngx_buf_t *src,
-    ngx_pool_t *pool) {
+ngx_buf_t* 
+ngx_http_healthcheck_buf_append(ngx_buf_t *dst, ngx_buf_t *src,
+    ngx_pool_t *pool)
+{
   //TODO: Consider using a buffer chain
   ngx_buf_t *new_buf;
     if (dst->last + (src->last - src->pos) > dst->end) {
@@ -871,8 +934,10 @@ ngx_buf_t* ngx_http_healthcheck_buf_append(ngx_buf_t *dst, ngx_buf_t *src,
         // the status request
         dst = new_buf;
     }
+
     ngx_memcpy(dst->last, src->pos, (src->last - src->pos));
     dst->last += (src->last - src->pos);
+
     return dst;
 }
 
@@ -884,13 +949,16 @@ ngx_buf_t* ngx_http_healthcheck_buf_append(ngx_buf_t *dst, ngx_buf_t *src,
         } \
     } while (0);
 
-static ngx_int_t ngx_http_healthcheck_status_handler(ngx_http_request_t *r) {
+static ngx_int_t
+ngx_http_healthcheck_status_handler(ngx_http_request_t *r)
+{
     ngx_int_t          rc;
     ngx_buf_t         *b, *tmp;
     ngx_chain_t        out;
     ngx_uint_t i;
     ngx_http_healthcheck_status_t *stat;
     ngx_http_healthcheck_status_shm_t *shm;
+
     if (r->method != NGX_HTTP_GET && r->method != NGX_HTTP_HEAD) {
         return NGX_HTTP_NOT_ALLOWED;
     }
@@ -944,26 +1012,26 @@ static ngx_int_t ngx_http_healthcheck_status_handler(ngx_http_request_t *r) {
     NGX_HEALTH_APPEND_CHECK(b, tmp, (r->pool));
 
     for (i=0; i<ngx_http_healthchecks_arr->nelts; i++) {
-      stat = &ngx_http_healthchecks[i];
-      shm  = stat->shm;
+        stat = &ngx_http_healthchecks[i];
+        shm  = stat->shm;
 
-      tmp->last = ngx_snprintf(tmp->pos, tmp->end - tmp->pos,
-        "  <tr>\n"
-        "    <td>%i</td>\n" // Index
-        "    <td>%V</td>\n" // Name
-        "    <td>%P</td>\n" // PID
-        "    <td>%M</td>\n" // action time
-        "    <td>%i</td>\n" // concurrent status values
-        "    <td>%M</td>\n" // Time concurrent
-        "    <td>%d</td>\n" // Last response down?
-        "    <td>%s</td>\n" // Code of last response
-        "    <td>%A</td>\n" // Is down?
-        "  </tr>\n", stat->index, &stat->peer->name, shm->owner,
-                     shm->action_time, shm->concurrent,
-                     shm->since, (int)shm->last_down,
-                     ngx_http_healthcheck_statestr(shm->down_code),
-                     shm->down);
-      NGX_HEALTH_APPEND_CHECK(b, tmp, r->pool);
+        tmp->last = ngx_snprintf(tmp->pos, tmp->end - tmp->pos,
+                "  <tr>\n"
+                "    <td>%i</td>\n" // Index
+                "    <td>%V</td>\n" // Name
+                "    <td>%P</td>\n" // PID
+                "    <td>%M</td>\n" // action time
+                "    <td>%i</td>\n" // concurrent status values
+                "    <td>%M</td>\n" // Time concurrent
+                "    <td>%d</td>\n" // Last response down?
+                "    <td>%s</td>\n" // Code of last response
+                "    <td>%A</td>\n" // Is down?
+                "  </tr>\n", stat->index, &stat->peer->name, shm->owner,
+                shm->action_time, shm->concurrent,
+                shm->since, (int)shm->last_down,
+                ngx_http_healthcheck_statestr(shm->down_code),
+                shm->down);
+        NGX_HEALTH_APPEND_CHECK(b, tmp, r->pool);
     }
 
     tmp->last = ngx_snprintf(tmp->pos, tmp->end - tmp->pos,
@@ -996,18 +1064,25 @@ static ngx_int_t ngx_http_healthcheck_status_handler(ngx_http_request_t *r) {
 //
 //
 
-static char* ngx_http_healthcheck_enabled(ngx_conf_t *cf, ngx_command_t *cmd,
-        void *conf) {
+
+static char* 
+ngx_http_healthcheck_enabled(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
+{
     ngx_http_upstream_srv_conf_t  *uscf;
+
     uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
     uscf->healthcheck_enabled = 1;
+
     return NGX_CONF_OK;
 }
 
-static char* ngx_http_healthcheck_delay(ngx_conf_t *cf, ngx_command_t *cmd,
-        void *conf) {
+
+static char* 
+ngx_http_healthcheck_delay(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_str_t                     *value;
     ngx_http_upstream_srv_conf_t  *uscf;
-    ngx_str_t *value;
+
     value = cf->args->elts;
 
     uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
@@ -1015,12 +1090,17 @@ static char* ngx_http_healthcheck_delay(ngx_conf_t *cf, ngx_command_t *cmd,
     if (uscf->health_delay == NGX_ERROR) {
         return "Invalid healthcheck delay";
     }
+
     return NGX_CONF_OK;
 }
-static char* ngx_http_healthcheck_timeout(ngx_conf_t *cf, ngx_command_t *cmd,
-        void *conf) {
+
+
+static char* 
+ngx_http_healthcheck_timeout(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_str_t                     *value;
     ngx_http_upstream_srv_conf_t  *uscf;
-    ngx_str_t *value;
+
     value = cf->args->elts;
 
     uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
@@ -1028,12 +1108,17 @@ static char* ngx_http_healthcheck_timeout(ngx_conf_t *cf, ngx_command_t *cmd,
     if (uscf->health_timeout == (ngx_msec_t)NGX_ERROR) {
         return "Invalid healthcheck timeout ";
     }
+
     return NGX_CONF_OK;
 }
-static char* ngx_http_healthcheck_failcount(ngx_conf_t *cf, ngx_command_t *cmd,
-        void *conf) {
+
+
+static char* 
+ngx_http_healthcheck_failcount(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_str_t                     *value;
     ngx_http_upstream_srv_conf_t  *uscf;
-    ngx_str_t *value;
+
     value = cf->args->elts;
 
     uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
@@ -1041,19 +1126,25 @@ static char* ngx_http_healthcheck_failcount(ngx_conf_t *cf, ngx_command_t *cmd,
     if (uscf->health_failcount == NGX_ERROR) {
         return "Invalid healthcheck failcount";
     }
+
     return NGX_CONF_OK;
 }
-static char* ngx_http_healthcheck_send(ngx_conf_t *cf, ngx_command_t *cmd,
-        void *conf) {
+
+
+static char* 
+ngx_http_healthcheck_send(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    int                            i;
+    size_t                         at;
+    ngx_int_t                      num;
+    ngx_str_t                     *value;
     ngx_http_upstream_srv_conf_t  *uscf;
-    ngx_str_t *value;
-    ngx_int_t  num;
-    int i;
+
     uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
     value = cf->args->elts;
     num = cf->args->nelts;
+
     uscf->health_send.len  = 0;
-    size_t at;
     uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
     for (i = 1; i<num; i++) {
         if (i !=1) {
@@ -1061,11 +1152,13 @@ static char* ngx_http_healthcheck_send(ngx_conf_t *cf, ngx_command_t *cmd,
         }
         uscf->health_send.len += value[i].len;
     }
+
     uscf->health_send.len += (sizeof(CRLF) - 1) * 2;
     uscf->health_send.data = ngx_pnalloc(cf->pool, uscf->health_send.len + 1);
     if (uscf->health_send.data == NULL) {
         return "Unable to alloc data to send";
     }
+
     at = 0;
     for (i = 1; i<num; i++) {
         if (i !=1) {
@@ -1085,8 +1178,10 @@ static char* ngx_http_healthcheck_send(ngx_conf_t *cf, ngx_command_t *cmd,
     return NGX_CONF_OK;
 }
 
-static char* ngx_http_healthcheck_expected(ngx_conf_t *cf, ngx_command_t *cmd,
-        void *conf) {
+
+static char* 
+ngx_http_healthcheck_expected(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
+{
     ngx_http_upstream_srv_conf_t  *uscf;
     ngx_str_t *value;
     value = cf->args->elts;
@@ -1098,8 +1193,10 @@ static char* ngx_http_healthcheck_expected(ngx_conf_t *cf, ngx_command_t *cmd,
     return NGX_CONF_OK;
 }
 
-static char* ngx_http_healthcheck_buffer(ngx_conf_t *cf, ngx_command_t *cmd,
-        void *conf) {
+
+static char* 
+ngx_http_healthcheck_buffer(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
     ngx_http_upstream_srv_conf_t  *uscf;
     ngx_str_t *value;
     value = cf->args->elts;
@@ -1109,13 +1206,14 @@ static char* ngx_http_healthcheck_buffer(ngx_conf_t *cf, ngx_command_t *cmd,
     if (uscf->health_buffersize == NGX_ERROR) {
         return "Invalid healthcheck buffer size";
     }
+
     return NGX_CONF_OK;
 }
 
 
-static char* ngx_http_set_healthcheck_status(ngx_conf_t *cf, ngx_command_t *cmd,
-      void*conf) {
-
+static char* 
+ngx_http_set_healthcheck_status(ngx_conf_t *cf, ngx_command_t *cmd, void*conf)
+{
     ngx_http_core_loc_conf_t  *clcf;
 
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
