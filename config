@@ -1,5 +1,23 @@
-ngx_addon_name=ngx_http_healthcheck_module
-HTTP_INCS="$HTTP_INCS $ngx_addon_dir"
-HTTP_MODULES="$HTTP_MODULES ngx_http_healthcheck_module"
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_healthcheck_module.c"
-have=NGX_HTTP_HEALTHCHECK . auto/have
+ngx_feature="nginx_upstream_check_module"
+ngx_feature_name=
+ngx_feature_run=no
+ngx_feature_incs=
+ngx_feature_path="$ngx_addon_dir/modules $ngx_addon_dir"
+ngx_feature_deps="$ngx_addon_dir/ngx_http_upstream_check_handler.h"
+ngx_check_src="$ngx_addon_dir/ngx_http_upstream_check_module.c $ngx_addon_dir/ngx_http_upstream_check_handler.c $ngx_addon_dir/http_response_parse.c $ngx_addon_dir/smtp_response_parse.c"
+ngx_feature_test="int a;"
+. auto/feature
+
+if [ $ngx_found = yes ]; then
+    CORE_INCS="$CORE_INCS $ngx_feature_path"
+    ngx_addon_name=ngx_upstream_check_module
+    #EVENT_MODULES="$EVENT_MODULES $TCP_CORE_MODULES $TCP_MODULES"
+    HTTP_MODULES="$HTTP_MODULES ngx_http_upstream_check_module"
+    NGX_ADDON_DEPS="$NGX_ADDON_DEPS $ngx_feature_deps"
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_check_src"
+else 
+    cat << END
+    $0: error: the ngx_tcp_module addon error.
+END
+    exit 1
+fi
