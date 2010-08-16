@@ -227,7 +227,7 @@ ngx_int_t ngx_http_check_init_process(ngx_cycle_t *cycle);
 ngx_int_t ngx_http_upstream_check_status_handler(ngx_http_request_t *r);
 
 ngx_uint_t ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *uscf,
-        ngx_peer_addr_t *peer, ngx_uint_t max_busy);
+        ngx_peer_addr_t *peer);
 
 ngx_uint_t ngx_http_check_peer_down(ngx_uint_t index);
 

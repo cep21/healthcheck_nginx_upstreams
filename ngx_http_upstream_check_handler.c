@@ -198,7 +198,7 @@ ngx_http_get_check_type_conf(ngx_str_t *str)
 
 ngx_uint_t
 ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *uscf,
-        ngx_peer_addr_t *peer, ngx_uint_t max_busy)
+        ngx_peer_addr_t *peer)
 {
     ngx_http_upstream_main_conf_t  *umcf; 
     ngx_http_check_peers_conf_t    *peers_conf;
@@ -210,7 +210,6 @@ ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *uscf,
 
     peer_conf = ngx_array_push(&peers_conf->peers);
     peer_conf->index = peers_conf->peers.nelts - 1;
-    peer_conf->max_busy = max_busy;
     peer_conf->conf = uscf;
     peer_conf->peer = peer;
 
@@ -229,8 +228,7 @@ ngx_http_check_peer_down(ngx_uint_t index)
 
     peer_conf = check_peers_ctx->peers.elts;
 
-    return (peer_conf[index].shm->down | 
-            (peer_conf[index].shm->business > peer_conf[index].max_busy));
+    return (peer_conf[index].shm->down);
 }
 
 

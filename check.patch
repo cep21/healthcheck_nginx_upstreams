@@ -1,0 +1,217 @@
+diff --git a/src/http/ngx_http.h b/src/http/ngx_http.h
+index 9444b11..c406c7c 100644
+--- a/src/http/ngx_http.h
++++ b/src/http/ngx_http.h
+@@ -18,6 +18,11 @@ typedef struct ngx_http_cache_s       ngx_http_cache_t;
+ typedef struct ngx_http_file_cache_s  ngx_http_file_cache_t;
+ typedef struct ngx_http_log_ctx_s     ngx_http_log_ctx_t;
+ 
++typedef struct ngx_http_check_peer_conf_s ngx_http_check_peer_conf_t;
++typedef struct ngx_http_check_peers_conf_s ngx_http_check_peers_conf_t;
++typedef struct check_conf_s check_conf_t;
++
++
+ typedef ngx_int_t (*ngx_http_header_handler_pt)(ngx_http_request_t *r,
+     ngx_table_elt_t *h, ngx_uint_t offset);
+ typedef u_char *(*ngx_http_log_handler_pt)(ngx_http_request_t *r,
+@@ -27,6 +32,7 @@ typedef u_char *(*ngx_http_log_handler_pt)(ngx_http_request_t *r,
+ #include <ngx_http_variables.h>
+ #include <ngx_http_request.h>
+ #include <ngx_http_upstream.h>
++#include <ngx_http_upstream_check_handler.h>
+ #include <ngx_http_upstream_round_robin.h>
+ #include <ngx_http_config.h>
+ #include <ngx_http_busy_lock.h>
+diff --git a/src/http/ngx_http_upstream.c b/src/http/ngx_http_upstream.c
+index 4e3c3ed..1512f02 100644
+--- a/src/http/ngx_http_upstream.c
++++ b/src/http/ngx_http_upstream.c
+@@ -4308,6 +4308,11 @@ ngx_http_upstream_create_main_conf(ngx_conf_t *cf)
+         return NULL;
+     }
+ 
++    umcf->peers_conf = ngx_pcalloc(cf->pool, sizeof(ngx_http_check_peers_conf_t));
++    if (umcf->peers_conf == NULL) {
++        return NULL;
++    }
++
+     if (ngx_array_init(&umcf->upstreams, cf->pool, 4,
+                        sizeof(ngx_http_upstream_srv_conf_t *))
+         != NGX_OK)
+@@ -4315,6 +4320,12 @@ ngx_http_upstream_create_main_conf(ngx_conf_t *cf)
+         return NULL;
+     }
+ 
++    if (ngx_array_init(&umcf->peers_conf->peers, cf->pool, 16,
++                sizeof(ngx_http_check_peer_conf_t)) != NGX_OK)
++    {
++        return NULL;
++    }
++
+     return umcf;
+ }
+ 
+@@ -4334,6 +4345,10 @@ ngx_http_upstream_init_main_conf(ngx_conf_t *cf, void *conf)
+ 
+     uscfp = umcf->upstreams.elts;
+ 
++    if (ngx_http_upstream_init_main_check_conf(cf, conf) != NGX_OK) {
++            return NGX_CONF_ERROR;
++    }
++
+     for (i = 0; i < umcf->upstreams.nelts; i++) {
+ 
+         init = uscfp[i]->peer.init_upstream ? uscfp[i]->peer.init_upstream:
+diff --git a/src/http/ngx_http_upstream.h b/src/http/ngx_http_upstream.h
+index 38bd7df..b467597 100644
+--- a/src/http/ngx_http_upstream.h
++++ b/src/http/ngx_http_upstream.h
+@@ -15,7 +15,6 @@
+ #include <ngx_event_pipe.h>
+ #include <ngx_http.h>
+ 
+-
+ #define NGX_HTTP_UPSTREAM_FT_ERROR           0x00000002
+ #define NGX_HTTP_UPSTREAM_FT_TIMEOUT         0x00000004
+ #define NGX_HTTP_UPSTREAM_FT_INVALID_HEADER  0x00000008
+@@ -62,6 +61,9 @@ typedef struct {
+     ngx_hash_t                       headers_in_hash;
+     ngx_array_t                      upstreams;
+                                              /* ngx_http_upstream_srv_conf_t */
++
++    ngx_uint_t                       check_shm_size;
++    ngx_http_check_peers_conf_t     *peers_conf;
+ } ngx_http_upstream_main_conf_t;
+ 
+ typedef struct ngx_http_upstream_srv_conf_s  ngx_http_upstream_srv_conf_t;
+@@ -111,6 +113,19 @@ struct ngx_http_upstream_srv_conf_s {
+     ngx_uint_t                       line;
+     in_port_t                        port;
+     in_port_t                        default_port;
++
++    ngx_uint_t                       fall_count;
++    ngx_uint_t                       rise_count;
++    ngx_msec_t                       check_interval;
++    ngx_msec_t                       check_timeout;
++
++    check_conf_t                    *check_type_conf;
++    ngx_str_t                        send;
++
++    union {
++        ngx_uint_t                   return_code;
++        ngx_uint_t                   status_alive;
++    };
+ };
+ 
+ 
+diff --git a/src/http/ngx_http_upstream_round_robin.c b/src/http/ngx_http_upstream_round_robin.c
+index 52bd808..7f98b4c 100644
+--- a/src/http/ngx_http_upstream_round_robin.c
++++ b/src/http/ngx_http_upstream_round_robin.c
+@@ -65,6 +65,19 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
+                 peers->peer[n].down = server[i].down;
+                 peers->peer[n].weight = server[i].down ? 0 : server[i].weight;
+                 peers->peer[n].current_weight = peers->peer[n].weight;
++
++                if (!server[i].down && us->check_interval) {
++                    peers->peer[n].check_index = 
++                        ngx_http_check_add_peer(cf, us, &server[i].addrs[j]);
++
++                    if (peers->peer[n].check_index == (ngx_uint_t) NGX_ERROR) {
++                        return NGX_ERROR;
++                    }
++                }
++                else {
++                    peers->peer[n].check_index = (ngx_uint_t) NGX_ERROR;
++                }
++
+                 n++;
+             }
+         }
+@@ -118,6 +131,19 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
+                 backup->peer[n].max_fails = server[i].max_fails;
+                 backup->peer[n].fail_timeout = server[i].fail_timeout;
+                 backup->peer[n].down = server[i].down;
++
++                if (!server[i].down && us->check_interval) {
++                    peers->peer[n].check_index = 
++                        ngx_http_check_add_peer(cf, us, &server[i].addrs[j]);
++
++                    if (peers->peer[n].check_index == (ngx_uint_t) NGX_ERROR) {
++                        return NGX_ERROR;
++                    }
++                }
++                else {
++                    peers->peer[n].check_index = (ngx_uint_t) NGX_ERROR;
++                }
++
+                 n++;
+             }
+         }
+@@ -425,15 +451,17 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+ 
+                     if (!peer->down) {
+ 
+-                        if (peer->max_fails == 0
+-                            || peer->fails < peer->max_fails)
+-                        {
+-                            break;
+-                        }
+-
+-                        if (now - peer->accessed > peer->fail_timeout) {
+-                            peer->fails = 0;
+-                            break;
++                        if (!ngx_http_check_peer_down(peer->check_index)) {
++                            if (peer->max_fails == 0
++                                    || peer->fails < peer->max_fails)
++                            {
++                                break;
++                            }
++
++                            if (now - peer->accessed > peer->fail_timeout) {
++                                peer->fails = 0;
++                                break;
++                            }
+                         }
+ 
+                         peer->current_weight = 0;
+@@ -473,15 +501,18 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+ 
+                     if (!peer->down) {
+ 
+-                        if (peer->max_fails == 0
+-                            || peer->fails < peer->max_fails)
+-                        {
+-                            break;
+-                        }
++                        if (!ngx_http_check_peer_down(peer->check_index)) {
++
++                            if (peer->max_fails == 0
++                                    || peer->fails < peer->max_fails)
++                            {
++                                break;
++                            }
+ 
+-                        if (now - peer->accessed > peer->fail_timeout) {
+-                            peer->fails = 0;
+-                            break;
++                            if (now - peer->accessed > peer->fail_timeout) {
++                                peer->fails = 0;
++                                break;
++                            }
+                         }
+ 
+                         peer->current_weight = 0;
+diff --git a/src/http/ngx_http_upstream_round_robin.h b/src/http/ngx_http_upstream_round_robin.h
+index 2213154..e40aa24 100644
+--- a/src/http/ngx_http_upstream_round_robin.h
++++ b/src/http/ngx_http_upstream_round_robin.h
+@@ -27,6 +27,8 @@ typedef struct {
+     ngx_uint_t                      max_fails;
+     time_t                          fail_timeout;
+ 
++    ngx_uint_t                      check_index;
++
+     ngx_uint_t                      down;          /* unsigned  down:1; */
+ 
+ #if (NGX_HTTP_SSL)

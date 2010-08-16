@@ -29,7 +29,7 @@ static ngx_command_t  ngx_http_upstream_check_commands[] = {
     { ngx_string("check"),
         NGX_HTTP_UPS_CONF|NGX_CONF_1MORE,
         ngx_http_upstream_check,
-        NGX_HTTP_SRV_CONF_OFFSET,
+        0,
         0,
         NULL },
 
@@ -114,7 +114,7 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_str_t                     *value, s;
     ngx_uint_t                     i, rise, fall;
     ngx_msec_t                     interval, timeout;
-    ngx_http_upstream_srv_conf_t  *uscf = conf;
+    ngx_http_upstream_srv_conf_t  *uscf;
 
     /*set default*/
     rise = 2;
@@ -123,6 +123,11 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     timeout = 1000;
 
     value = cf->args->elts;
+
+    uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
+    if (uscf == NULL) {
+        return NGX_CONF_ERROR;
+    }
 
     for (i = 1; i < cf->args->nelts; i++) {
 
@@ -211,9 +216,11 @@ invalid_check_parameter:
     return NGX_CONF_ERROR;
 }
 
+
 static char *
 ngx_http_upstream_check_status_set_status(ngx_conf_t *cf, 
-        ngx_command_t *cmd, void *conf) {
+        ngx_command_t *cmd, void *conf) 
+{
 
     ngx_http_core_loc_conf_t                *clcf;
     ngx_str_t                               *value;

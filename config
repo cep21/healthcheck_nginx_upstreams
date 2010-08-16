@@ -1,4 +1,4 @@
-ngx_feature="nginx_upstream_check_module"
+ngx_feature="ngx_http_upstream_check_module"
 ngx_feature_name=
 ngx_feature_run=no
 ngx_feature_incs=
@@ -10,14 +10,14 @@ ngx_feature_test="int a;"
 
 if [ $ngx_found = yes ]; then
     CORE_INCS="$CORE_INCS $ngx_feature_path"
-    ngx_addon_name=ngx_upstream_check_module
+    ngx_addon_name=ngx_http_upstream_check_module
     #EVENT_MODULES="$EVENT_MODULES $TCP_CORE_MODULES $TCP_MODULES"
     HTTP_MODULES="$HTTP_MODULES ngx_http_upstream_check_module"
     NGX_ADDON_DEPS="$NGX_ADDON_DEPS $ngx_feature_deps"
     NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_check_src"
 else 
     cat << END
-    $0: error: the ngx_tcp_module addon error.
+    $0: error: the ngx_http_upstream_check_module addon error.
 END
     exit 1
 fi
