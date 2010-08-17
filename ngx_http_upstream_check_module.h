@@ -9,6 +9,10 @@
 #include <ngx_event_pipe.h>
 #include <ngx_http.h>
 
+typedef struct ngx_http_check_peer_s ngx_http_check_peer_t;
+typedef struct ngx_http_check_peers_s ngx_http_check_peers_t;
+typedef struct check_conf_s check_conf_t;
+
 /* make nginx-0.8.22+ happy */
 #if defined(nginx_version) && nginx_version >= 8022
 typedef ngx_addr_t ngx_peer_addr_t; 
@@ -66,12 +70,26 @@ typedef struct {
     ngx_http_check_peers_t          *peers;
 }ngx_http_upstream_check_main_conf_t;
 
+typedef struct {
+    ngx_uint_t                       fall_count;
+    ngx_uint_t                       rise_count;
+    ngx_msec_t                       check_interval;
+    ngx_msec_t                       check_timeout;
+
+    check_conf_t                    *check_type_conf;
+    ngx_str_t                        send;
+
+    union {
+        ngx_uint_t                   return_code;
+        ngx_uint_t                   status_alive;
+    };
+}ngx_http_upstream_check_srv_conf_t;
+
 ngx_int_t ngx_http_upstream_init_main_check_conf(ngx_conf_t *cf, void*conf);
 
 ngx_int_t ngx_http_check_init_process(ngx_cycle_t *cycle);
 
-ngx_uint_t ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *uscf,
-        ngx_peer_addr_t *peer);
+ngx_uint_t ngx_http_check_add_peer(ngx_conf_t *cf, ngx_peer_addr_t *peer);
 
 check_conf_t *ngx_http_get_check_type_conf(ngx_str_t *str);
 

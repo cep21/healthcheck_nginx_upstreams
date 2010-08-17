@@ -84,7 +84,7 @@ struct ngx_http_check_peer_s {
     ngx_pool_t                      *pool;
     ngx_uint_t                       index;
     ngx_uint_t                       max_busy;
-    ngx_http_upstream_srv_conf_t    *conf;
+    ngx_http_upstream_check_srv_conf_t   *conf;
     ngx_peer_addr_t                 *peer_addr;
     ngx_event_t                      check_ev;
     ngx_event_t                      check_timeout_ev;
