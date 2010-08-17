@@ -12,8 +12,6 @@ Status
 Synopsis
     http {
 
-        listen 80;
-
         upstream cluster {
             # simple round-robin
             server 127.0.0.1:3306;
