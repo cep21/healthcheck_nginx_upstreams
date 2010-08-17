@@ -202,9 +202,9 @@ ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *uscf,
 {
     ngx_http_check_peer_t          *peer;
     ngx_http_check_peers_t         *peers;
-    ngx_http_upstream_main_conf_t  *umcf; 
+    ngx_http_upstream_check_main_conf_t  *umcf; 
 
-    umcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_upstream_module);
+    umcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_upstream_check_module);
 
     peers = umcf->peers;
 
@@ -1545,7 +1545,10 @@ ngx_http_upstream_init_main_check_conf(ngx_conf_t *cf, void*conf)
     ngx_uint_t                      i, shm_size, need_check;
     ngx_shm_zone_t                 *shm_zone;
     ngx_http_upstream_srv_conf_t   **uscfp;
-    ngx_http_upstream_main_conf_t  *umcf = conf;
+    ngx_http_upstream_main_conf_t  *umcf;
+    ngx_http_upstream_check_main_conf_t  *ucmcf = conf;
+
+    umcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_upstream_module);
 
     uscfp = umcf->upstreams.elts;
 
@@ -1562,7 +1565,7 @@ ngx_http_upstream_init_main_check_conf(ngx_conf_t *cf, void*conf)
     if (need_check) {
         ngx_http_check_shm_generation++;
 
-        shm_name = &umcf->peers->check_shm_name;
+        shm_name = &ucmcf->peers->check_shm_name;
 
         if (ngx_http_check_get_shm_name(shm_name, cf->pool) == NGX_ERROR) {
             return NGX_ERROR;
@@ -1571,15 +1574,15 @@ ngx_http_upstream_init_main_check_conf(ngx_conf_t *cf, void*conf)
         /*the default check shmare memory size*/
         shm_size = (umcf->upstreams.nelts + 1 )* ngx_pagesize;
 
-        shm_size = shm_size < umcf->check_shm_size ? umcf->check_shm_size : shm_size;
+        shm_size = shm_size < ucmcf->check_shm_size ? ucmcf->check_shm_size : shm_size;
 
         shm_zone = ngx_shared_memory_add(cf, shm_name, shm_size, &ngx_http_upstream_check_module);
 
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cf->log, 0,
                 "[http_upstream] upsteam:%V, shm_zone size:%ui", shm_name, shm_size);
 
-        shm_zone->data = umcf->peers;
-        check_peers_ctx = umcf->peers;
+        shm_zone->data = ucmcf->peers;
+        check_peers_ctx = ucmcf->peers;
 
         shm_zone->init = ngx_http_upstream_check_init_shm_zone;
     }

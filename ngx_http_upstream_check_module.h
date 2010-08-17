@@ -61,7 +61,7 @@ struct check_conf_s {
     unsigned need_pool;
 };
 
-typdef struct {
+typedef struct {
     ngx_uint_t                       check_shm_size;
     ngx_http_check_peers_t          *peers;
 }ngx_http_upstream_check_main_conf_t;

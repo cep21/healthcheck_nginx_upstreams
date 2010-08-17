@@ -4,7 +4,10 @@
 #include <ngx_http.h>
 #include <ngx_http_upstream.h>
 
-static char *ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_upstream_check(ngx_conf_t *cf, 
+        ngx_command_t *cmd, void *conf);
+static char * ngx_http_upstream_check_shm_size(ngx_conf_t *cf, 
+        ngx_command_t *cmd, void *conf);
 static char * ngx_http_upstream_check_status_set_status(ngx_conf_t *cf, 
         ngx_command_t *cmd, void *conf);
 
@@ -66,9 +69,9 @@ static ngx_command_t  ngx_http_upstream_check_commands[] = {
 
     { ngx_string("check_shm_size"),
         NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
-        ngx_conf_set_size_slot,
-        NGX_HTTP_MAIN_CONF_OFFSET,
-        offsetof(ngx_http_upstream_main_conf_t, check_shm_size),
+        ngx_http_upstream_check_shm_size,
+        0,
+        0,
         NULL },
 
     { ngx_string("check_status"),
@@ -221,6 +224,29 @@ invalid_check_parameter:
 
 
 static char *
+ngx_http_upstream_check_shm_size(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
+{
+    ngx_str_t                            *value;
+    ngx_http_upstream_check_main_conf_t  *ucmcf; 
+
+    ucmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_upstream_check_module);
+
+    if (ucmcf->check_shm_size) {
+        return "is duplicate";
+    }
+
+    value = cf->args->elts;
+
+    ucmcf->check_shm_size = ngx_parse_size(&value[1]);
+    if (ucmcf->check_shm_size == (size_t) NGX_ERROR) {
+        return "invalid value";
+    }
+
+    return NGX_CONF_OK;
+}
+
+
+static char *
 ngx_http_upstream_check_status_set_status(ngx_conf_t *cf, 
         ngx_command_t *cmd, void *conf) 
 {
@@ -239,32 +265,32 @@ ngx_http_upstream_check_status_set_status(ngx_conf_t *cf,
 
 
 static void *
-ngx_http_upstream_create_main_conf(ngx_conf_t *cf)
+ngx_http_upstream_check_create_main_conf(ngx_conf_t *cf)
 {
-    ngx_http_upstream_check_main_conf_t  *umcf;
+    ngx_http_upstream_check_main_conf_t  *ucmcf;
 
-    umcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_upstream_check_main_conf_t));
-    if (umcf == NULL) {
+    ucmcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_upstream_check_main_conf_t));
+    if (ucmcf == NULL) {
         return NULL;
     }
 
-    umcf->peers = ngx_pcalloc(cf->pool, sizeof(ngx_http_check_peers_t));
-    if (umcf->peers == NULL) {
+    ucmcf->peers = ngx_pcalloc(cf->pool, sizeof(ngx_http_check_peers_t));
+    if (ucmcf->peers == NULL) {
         return NULL;
     }
 
-    if (ngx_array_init(&umcf->peers->peers, cf->pool, 16,
+    if (ngx_array_init(&ucmcf->peers->peers, cf->pool, 16,
                 sizeof(ngx_http_check_peer_t)) != NGX_OK)
     {
         return NULL;
     }
 
-    return umcf;
+    return ucmcf;
 }
 
 
 static char *
-ngx_http_upstream_init_main_conf(ngx_conf_t *cf, void *conf)
+ngx_http_upstream_check_init_main_conf(ngx_conf_t *cf, void *conf)
 {
 
     if (ngx_http_upstream_init_main_check_conf(cf, conf) != NGX_OK) {
