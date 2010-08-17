@@ -8,6 +8,9 @@ static char *ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *c
 static char * ngx_http_upstream_check_status_set_status(ngx_conf_t *cf, 
         ngx_command_t *cmd, void *conf);
 
+static void *ngx_http_upstream_check_create_main_conf(ngx_conf_t *cf);
+static char *ngx_http_upstream_check_init_main_conf(ngx_conf_t *cf, void *conf);
+
 static ngx_conf_bitmask_t  ngx_check_http_expect_alive_masks[] = {
     { ngx_string("http_2xx"), NGX_CHECK_HTTP_2XX },
     { ngx_string("http_3xx"), NGX_CHECK_HTTP_3XX },
@@ -82,8 +85,8 @@ static ngx_http_module_t  ngx_http_upstream_check_module_ctx = {
     NULL,                                  /* preconfiguration */
     NULL,                                  /* postconfiguration */
 
-    NULL,                                  /* create main configuration */
-    NULL,                                  /* init main configuration */
+    ngx_http_upstream_check_create_main_conf,    /* create main configuration */
+    ngx_http_upstream_check_init_main_conf,    /* init main configuration */
 
     NULL,                                  /* create server configuration */
     NULL,                                  /* merge server configuration */
@@ -235,3 +238,38 @@ ngx_http_upstream_check_status_set_status(ngx_conf_t *cf,
 }
 
 
+static void *
+ngx_http_upstream_create_main_conf(ngx_conf_t *cf)
+{
+    ngx_http_upstream_check_main_conf_t  *umcf;
+
+    umcf = ngx_pcalloc(cf->pool, sizeof(ngx_http_upstream_check_main_conf_t));
+    if (umcf == NULL) {
+        return NULL;
+    }
+
+    umcf->peers = ngx_pcalloc(cf->pool, sizeof(ngx_http_check_peers_t));
+    if (umcf->peers == NULL) {
+        return NULL;
+    }
+
+    if (ngx_array_init(&umcf->peers->peers, cf->pool, 16,
+                sizeof(ngx_http_check_peer_t)) != NGX_OK)
+    {
+        return NULL;
+    }
+
+    return umcf;
+}
+
+
+static char *
+ngx_http_upstream_init_main_conf(ngx_conf_t *cf, void *conf)
+{
+
+    if (ngx_http_upstream_init_main_check_conf(cf, conf) != NGX_OK) {
+            return NGX_CONF_ERROR;
+    }
+
+    return NGX_CONF_OK;
+}

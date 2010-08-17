@@ -14,9 +14,9 @@
 typedef ngx_addr_t ngx_peer_addr_t; 
 #endif
 
-typedef ngx_int_t (*ngx_http_check_packet_init_pt)(ngx_http_check_peer_conf_t *peer_conf); 
-typedef ngx_int_t (*ngx_http_check_packet_parse_pt)(ngx_http_check_peer_conf_t *peer_conf); 
-typedef void (*ngx_http_check_packet_clean_pt)(ngx_http_check_peer_conf_t *peer_conf); 
+typedef ngx_int_t (*ngx_http_check_packet_init_pt)(ngx_http_check_peer_t *peer); 
+typedef ngx_int_t (*ngx_http_check_packet_parse_pt)(ngx_http_check_peer_t *peer); 
+typedef void (*ngx_http_check_packet_clean_pt)(ngx_http_check_peer_t *peer); 
 
 #define NGX_HTTP_CHECK_TCP              0x0001
 #define NGX_HTTP_CHECK_HTTP             0x0002
@@ -61,6 +61,11 @@ struct check_conf_s {
     unsigned need_pool;
 };
 
+typdef struct {
+    ngx_uint_t                       check_shm_size;
+    ngx_http_check_peers_t          *peers;
+}ngx_http_upstream_check_main_conf_t;
+
 ngx_int_t ngx_http_upstream_init_main_check_conf(ngx_conf_t *cf, void*conf);
 
 ngx_int_t ngx_http_check_init_process(ngx_cycle_t *cycle);
@@ -69,6 +74,8 @@ ngx_uint_t ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t 
         ngx_peer_addr_t *peer);
 
 check_conf_t *ngx_http_get_check_type_conf(ngx_str_t *str);
+
+extern ngx_module_t  ngx_http_upstream_check_module;
 
 #endif //_NGX_HTTP_UPSTREAM_CHECK_MODELE_H_INCLUDED_
 

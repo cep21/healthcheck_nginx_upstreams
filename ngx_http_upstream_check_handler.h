@@ -78,14 +78,14 @@ typedef struct {
     ngx_http_check_peer_shm_t peers[0];
 } ngx_http_check_peers_shm_t;
 
-struct ngx_http_check_peer_conf_s {
+struct ngx_http_check_peer_s {
 
     ngx_flag_t                       state;
     ngx_pool_t                      *pool;
     ngx_uint_t                       index;
     ngx_uint_t                       max_busy;
     ngx_http_upstream_srv_conf_t    *conf;
-    ngx_peer_addr_t                 *peer;
+    ngx_peer_addr_t                 *peer_addr;
     ngx_event_t                      check_ev;
     ngx_event_t                      check_timeout_ev;
     ngx_peer_connection_t            pc;
@@ -101,7 +101,7 @@ struct ngx_http_check_peer_conf_s {
     ngx_http_check_peer_shm_t         *shm;
 };
 
-struct ngx_http_check_peers_conf_s {
+struct ngx_http_check_peers_s {
     ngx_str_t                        check_shm_name;
     ngx_array_t                      peers;
 
