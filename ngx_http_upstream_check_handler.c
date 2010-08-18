@@ -569,7 +569,7 @@ http_version(void *data, const char *at, size_t length)
     str.data = (u_char *) at;
     str.len = length;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "VERSION: \"%V\"", &str);
 }
 
@@ -586,7 +586,7 @@ status_code(void *data, const char *at, size_t length)
     str.data = (u_char *) at;
     str.len = length;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "STATUS_CODE: \"%V\"", &str);
 
     ctx = peer->check_data;
@@ -620,7 +620,7 @@ reason_phrase(void *data, const char *at, size_t length)
     str.data = (u_char *) at;
     str.len = length;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "REASON_PHRASE: \"%V\"", &str);
 }
 
@@ -773,7 +773,7 @@ ngx_http_check_ssl_hello_parse(ngx_http_check_peer_t *peer)
 
     resp = (server_ssl_hello_t *) ctx->recv.pos;
 
-    ngx_log_debug5(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug7(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "http check ssl_parse, type: %d, version: %d.%d, length: %d, handshanke_type: %d, "
             "hello_version: %d.%d", 
             resp->msg_type, resp->version.major, resp->version.minor, 
@@ -814,7 +814,7 @@ domain(void *data, const char *at, size_t length)
     str.data = (u_char *) at;
     str.len = length;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "DOMAIN: \"%V\"", &str);
 }
 
@@ -827,7 +827,7 @@ greeting_text(void *data, const char *at, size_t length)
     str.data = (u_char *) at;
     str.len = length;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "GREETING_TEXT: \"%V\"", &str);
 }
 
@@ -844,7 +844,7 @@ reply_code(void *data, const char *at, size_t length)
     str.data = (u_char *) at;
     str.len = length;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "REPLY_CODE: \"%V\"", &str);
 
     ctx = peer->check_data;
@@ -878,7 +878,7 @@ reply_text(void *data, const char *at, size_t length)
     str.data = (u_char *) at;
     str.len = length;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "REPLY_TEXT: \"%V\"", &str);
 }
 
@@ -1336,7 +1336,7 @@ ngx_http_check_send_handler(ngx_event_t *event)
     }
 
     if (ctx->send.pos == ctx->send.last) {
-        ngx_log_debug(NGX_LOG_DEBUG_HTTP, c->log, 0, "http check send done.");
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http check send done.");
         peer->state = NGX_HTTP_CHECK_SEND_DONE;
     }
 
