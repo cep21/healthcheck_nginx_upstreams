@@ -3,6 +3,8 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 #include <ngx_http_upstream.h>
+#include "ngx_http_upstream_check_module.h"
+#include "ngx_http_upstream_check_handler.h"
 
 static char *ngx_http_upstream_check(ngx_conf_t *cf, 
         ngx_command_t *cmd, void *conf);
@@ -24,8 +26,9 @@ static void *ngx_http_upstream_check_create_main_conf(ngx_conf_t *cf);
 static char *ngx_http_upstream_check_init_main_conf(ngx_conf_t *cf, void *conf);
 
 static void * ngx_http_upstream_check_create_srv_conf(ngx_conf_t *cf);
-static char * ngx_http_upstream_check_merge_srv_conf(ngx_conf_t *cf, 
-        void *prev, void *conf);
+static char * ngx_http_upstream_check_init_srv_conf(ngx_conf_t *cf, void *conf);
+
+static ngx_int_t ngx_http_check_init_process(ngx_cycle_t *cycle);
 
 static ngx_conf_bitmask_t  ngx_check_http_expect_alive_masks[] = {
     { ngx_string("http_2xx"), NGX_CHECK_HTTP_2XX },
@@ -98,17 +101,17 @@ static ngx_command_t  ngx_http_upstream_check_commands[] = {
 };
 
 static ngx_http_module_t  ngx_http_upstream_check_module_ctx = {
-    NULL,                                  /* preconfiguration */
-    NULL,                                  /* postconfiguration */
+    NULL,                                      /* preconfiguration */
+    NULL,                                      /* postconfiguration */
 
-    ngx_http_upstream_check_create_main_conf,    /* create main configuration */
+    ngx_http_upstream_check_create_main_conf,  /* create main configuration */
     ngx_http_upstream_check_init_main_conf,    /* init main configuration */
 
-    ngx_http_upstream_check_create_srv_conf, /* create server configuration */
-    ngx_http_upstream_check_merge_srv_conf,  /* merge server configuration */
+    ngx_http_upstream_check_create_srv_conf,   /* create server configuration */
+    NULL,                                      /* merge server configuration */
 
-    NULL,                                  /* create location configuration */
-    NULL                                   /* merge location configuration */
+    NULL,                                      /* create location configuration */
+    NULL                                       /* merge location configuration */
 };
 
 ngx_module_t  ngx_http_upstream_check_module = {
@@ -126,15 +129,62 @@ ngx_module_t  ngx_http_upstream_check_module = {
     NGX_MODULE_V1_PADDING
 };
 
-ngx_conf_t upstream_cf;
+
+check_conf_t *
+ngx_http_get_check_type_conf(ngx_str_t *str)
+{
+    ngx_uint_t i;
+
+    for (i = 0; ;i++) {
+
+        if (ngx_check_types[i].type == 0) {
+            break;
+        }
+
+        if (ngx_strncmp(str->data, 
+                    (u_char *)ngx_check_types[i].name, str->len) == 0) {
+            return &ngx_check_types[i];
+        }
+    }
+
+    return NULL;
+}
+
+
+ngx_uint_t
+ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us,
+        ngx_peer_addr_t *peer_addr)
+{
+    ngx_http_check_peer_t                *peer;
+    ngx_http_check_peers_t               *peers;
+    ngx_http_upstream_check_srv_conf_t   *ucscf;
+    ngx_http_upstream_check_main_conf_t  *ucmcf; 
+
+    ucscf = ngx_http_conf_upstream_srv_conf(us, ngx_http_upstream_check_module);
+
+    if(ucscf->check_interval == 0) {
+        return NGX_ERROR;
+    }
+
+    ucmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_upstream_check_module);
+    peers = ucmcf->peers;
+
+    peer = ngx_array_push(&peers->peers);
+    peer->index = peers->peers.nelts - 1;
+    peer->conf = ucscf;
+    peer->peer_addr = peer_addr;
+
+    return peer->index;
+}
+
 
 static char *
 ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
 {
-    ngx_str_t                     *value, s;
-    ngx_uint_t                     i, rise, fall;
-    ngx_msec_t                     interval, timeout;
-    ngx_http_upstream_check_srv_conf_t  *uscf;
+    ngx_str_t                           *value, s;
+    ngx_uint_t                           i, rise, fall;
+    ngx_msec_t                           interval, timeout;
+    ngx_http_upstream_check_srv_conf_t  *ucscf;
 
     /*set default*/
     rise = 2;
@@ -144,10 +194,10 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    uscf = ngx_http_conf_get_module_srv_conf((&upstream_cf), ngx_http_upstream_check_module);
-    if (uscf == NULL) {
+    ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
+    if (ucscf == NULL) {
         return NGX_CONF_ERROR;
-    } 
+    }
 
     for (i = 1; i < cf->args->nelts; i++) {
 
@@ -155,9 +205,9 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             s.len = value[i].len - 5;
             s.data = value[i].data + 5;
 
-            uscf->check_type_conf = ngx_http_get_check_type_conf(&s);
+            ucscf->check_type_conf = ngx_http_get_check_type_conf(&s);
 
-            if ( uscf->check_type_conf == NULL) {
+            if ( ucscf->check_type_conf == NULL) {
                 goto invalid_check_parameter;
             }
 
@@ -215,16 +265,16 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         goto invalid_check_parameter;
     }
 
-    uscf->check_interval = interval;
-    uscf->check_timeout = timeout;
-    uscf->fall_count = fall;
-    uscf->rise_count = rise;
+    ucscf->check_interval = interval;
+    ucscf->check_timeout = timeout;
+    ucscf->fall_count = fall;
+    ucscf->rise_count = rise;
 
-    if (uscf->check_type_conf == NULL) {
+    if (ucscf->check_type_conf == NULL) {
         s.len = sizeof("http") - 1;
         s.data =(u_char *) "http";
 
-        uscf->check_type_conf = ngx_http_get_check_type_conf(&s);
+        ucscf->check_type_conf = ngx_http_get_check_type_conf(&s);
     }
 
     return NGX_CONF_OK;
@@ -241,13 +291,13 @@ static char *
 ngx_http_upstream_check_http_send(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
 {
     ngx_str_t                           *value;
-    ngx_http_upstream_check_srv_conf_t  *uscf;
+    ngx_http_upstream_check_srv_conf_t  *ucscf;
 
     value = cf->args->elts;
 
-    uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
+    ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
 
-    uscf->send = *value;
+    ucscf->send = *value;
 
     return NGX_CONF_OK;
 }
@@ -257,13 +307,13 @@ static char *
 ngx_http_upstream_check_smtp_send(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
 {
     ngx_str_t                           *value;
-    ngx_http_upstream_check_srv_conf_t  *uscf;
+    ngx_http_upstream_check_srv_conf_t  *ucscf;
 
     value = cf->args->elts;
 
-    uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
+    ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
 
-    uscf->send = *value;
+    ucscf->send = *value;
 
     return NGX_CONF_OK;
 }
@@ -275,13 +325,13 @@ ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
     ngx_str_t                           *value;
     ngx_uint_t                           bit, i, m;
     ngx_conf_bitmask_t                  *mask;
-    ngx_http_upstream_check_srv_conf_t  *uscf;
+    ngx_http_upstream_check_srv_conf_t  *ucscf;
 
     value = cf->args->elts;
     mask = ngx_check_http_expect_alive_masks; 
 
-    uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
-    bit = uscf->status_alive;
+    ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
+    bit = ucscf->status_alive;
 
     for (i = 1; i < cf->args->nelts; i++) {
         for (m = 0; mask[m].name.len != 0; m++) {
@@ -311,7 +361,7 @@ ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
         }
     }
 
-    uscf->status_alive = bit;
+    ucscf->status_alive = bit;
 
     return NGX_CONF_OK;
 }
@@ -323,13 +373,13 @@ ngx_http_upstream_check_smtp_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
     ngx_str_t                           *value;
     ngx_uint_t                           bit, i, m;
     ngx_conf_bitmask_t                  *mask;
-    ngx_http_upstream_check_srv_conf_t  *uscf;
+    ngx_http_upstream_check_srv_conf_t  *ucscf;
 
     value = cf->args->elts;
     mask = ngx_check_smtp_expect_alive_masks; 
 
-    uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
-    bit = uscf->status_alive;
+    ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
+    bit = ucscf->status_alive;
 
     for (i = 1; i < cf->args->nelts; i++) {
         for (m = 0; mask[m].name.len != 0; m++) {
@@ -359,7 +409,7 @@ ngx_http_upstream_check_smtp_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
         }
     }
 
-    uscf->status_alive = bit;
+    ucscf->status_alive = bit;
 
     return NGX_CONF_OK;
 }
@@ -430,15 +480,24 @@ ngx_http_upstream_check_create_main_conf(ngx_conf_t *cf)
 }
 
 
-static char *
+static char * 
 ngx_http_upstream_check_init_main_conf(ngx_conf_t *cf, void *conf)
 {
+    ngx_uint_t                            i;
+    ngx_http_upstream_srv_conf_t        **uscfp;
+    ngx_http_upstream_main_conf_t        *umcf;
 
-    if (ngx_http_upstream_init_main_check_conf(cf, conf) != NGX_OK) {
+    umcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_upstream_module);
+    uscfp = umcf->upstreams.elts;
+
+    for (i = 0; i < umcf->upstreams.nelts; i++) {
+
+        if (ngx_http_upstream_check_init_srv_conf(cf, uscfp[i]) != NGX_OK) {
             return NGX_CONF_ERROR;
+        }
     }
 
-    return NGX_CONF_OK;
+    return ngx_http_upstream_check_init_shm(cf, conf);
 }
 
 
@@ -457,49 +516,56 @@ ngx_http_upstream_check_create_srv_conf(ngx_conf_t *cf)
     ucscf->check_timeout = NGX_CONF_UNSET_MSEC;
     ucscf->check_type_conf = NGX_CONF_UNSET_PTR;
 
-    upstream_cf = *cf;
-
     return ucscf;
 }
 
 
 static char *
-ngx_http_upstream_check_merge_srv_conf(ngx_conf_t *cf, void *prev, void *conf)
+ngx_http_upstream_check_init_srv_conf(ngx_conf_t *cf, void *conf)
 {
     check_conf_t                        *check;
-    ngx_http_upstream_check_srv_conf_t  *pcf = prev;
+    ngx_http_upstream_srv_conf_t        *us = conf;
+    ngx_http_upstream_check_srv_conf_t  *ucscf;
 
-    if (pcf->fall_count == NGX_CONF_UNSET_UINT) {
-        pcf->fall_count = 2;
+    ucscf= ngx_http_conf_upstream_srv_conf(us, ngx_http_upstream_check_module);
+
+    if (ucscf->fall_count == NGX_CONF_UNSET_UINT) {
+        ucscf->fall_count = 2;
     }
 
-    if (pcf->rise_count == NGX_CONF_UNSET_UINT) {
-        pcf->rise_count = 5;
+    if (ucscf->rise_count == NGX_CONF_UNSET_UINT) {
+        ucscf->rise_count = 5;
     }
 
-    if (pcf->check_interval == NGX_CONF_UNSET_MSEC) {
-        pcf->check_interval = 0;
+    if (ucscf->check_interval == NGX_CONF_UNSET_MSEC) {
+        ucscf->check_interval = 0;
     }
 
-    if (pcf->check_timeout == NGX_CONF_UNSET_MSEC) {
-        pcf->check_timeout = 1000;
+    if (ucscf->check_timeout == NGX_CONF_UNSET_MSEC) {
+        ucscf->check_timeout = 1000;
     }
 
-    if (pcf->check_type_conf == NGX_CONF_UNSET_PTR) {
-        pcf->check_type_conf = NULL;
+    if (ucscf->check_type_conf == NGX_CONF_UNSET_PTR) {
+        ucscf->check_type_conf = NULL;
     }
 
-    check = pcf->check_type_conf;
+    check = ucscf->check_type_conf;
     if (check) {
-        if (pcf->send.len == 0) {
-            pcf->send.data = check->default_send.data;
-            pcf->send.len = check->default_send.len;
+        if (ucscf->send.len == 0) {
+            ucscf->send.data = check->default_send.data;
+            ucscf->send.len = check->default_send.len;
         }
 
-        if (pcf->status_alive == 0) { 
-            pcf->status_alive = check->default_status_alive;
+        if (ucscf->status_alive == 0) { 
+            ucscf->status_alive = check->default_status_alive;
         }
     }
 
     return NGX_CONF_OK;
+}
+
+static ngx_int_t 
+ngx_http_check_init_process(ngx_cycle_t *cycle) 
+{
+    return ngx_http_check_add_timers(cycle); 
 }

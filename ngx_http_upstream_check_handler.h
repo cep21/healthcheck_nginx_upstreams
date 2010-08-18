@@ -79,12 +79,10 @@ typedef struct {
 } ngx_http_check_peers_shm_t;
 
 struct ngx_http_check_peer_s {
-
     ngx_flag_t                       state;
     ngx_pool_t                      *pool;
     ngx_uint_t                       index;
     ngx_uint_t                       max_busy;
-    ngx_http_upstream_check_srv_conf_t   *conf;
     ngx_peer_addr_t                 *peer_addr;
     ngx_event_t                      check_ev;
     ngx_event_t                      check_timeout_ev;
@@ -98,7 +96,8 @@ struct ngx_http_check_peer_s {
     ngx_http_check_packet_parse_pt    parse;
     ngx_http_check_packet_clean_pt    reinit;
 
-    ngx_http_check_peer_shm_t         *shm;
+    ngx_http_check_peer_shm_t            *shm;
+    ngx_http_upstream_check_srv_conf_t   *conf;
 };
 
 struct ngx_http_check_peers_s {
@@ -115,16 +114,16 @@ typedef void (*field_cb)(void *data, const char *field, size_t flen, const char 
 
 
 typedef struct http_parser { 
-  int cs;
-  size_t body_start;
-  int content_len;
-  int status_code_n;
-  size_t nread;
-  size_t mark;
-  size_t field_start;
-  size_t field_len;
+  int      cs;
+  size_t   body_start;
+  int      content_len;
+  int      status_code_n;
+  size_t   nread;
+  size_t   mark;
+  size_t   field_start;
+  size_t   field_len;
 
-  void *data;
+  void    *data;
 
   field_cb http_field;
 
@@ -144,14 +143,13 @@ int http_parser_is_finished(http_parser *parser);
 #define http_parser_nread(parser) (parser)->nread 
 
 typedef struct smtp_parser {
+  int        cs;
+  size_t     nread;
+  size_t     mark;
 
-  int cs;
-  size_t nread;
-  size_t mark;
+  int        hello_reply_code;
 
-  int hello_reply_code;
-
-  void *data;
+  void      *data;
 
   element_cb domain;
   element_cb greeting_text;
@@ -176,6 +174,11 @@ ngx_uint_t ngx_http_check_peer_down(ngx_uint_t index);
 
 void ngx_http_check_get_peer(ngx_uint_t index);
 void ngx_http_check_free_peer(ngx_uint_t index);
+
+char * ngx_http_upstream_check_init_shm(ngx_conf_t *cf, void *conf);
+ngx_int_t ngx_http_check_add_timers(ngx_cycle_t *cycle);
+
+extern check_conf_t  ngx_check_types[];
 
 #endif //_NGX_HTTP_UPSTREAM_CHECK_HANDLER_H_INCLUDED_
 
