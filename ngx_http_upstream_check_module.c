@@ -270,9 +270,9 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ucscf->fall_count = fall;
     ucscf->rise_count = rise;
 
-    if (ucscf->check_type_conf == NULL) {
-        s.len = sizeof("http") - 1;
-        s.data =(u_char *) "http";
+    if (ucscf->check_type_conf == NGX_CONF_UNSET_PTR) {
+        s.len = sizeof("tcp") - 1;
+        s.data =(u_char *) "tcp";
 
         ucscf->check_type_conf = ngx_http_get_check_type_conf(&s);
     }
