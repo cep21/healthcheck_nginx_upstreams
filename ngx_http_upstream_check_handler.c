@@ -40,6 +40,10 @@ static ngx_int_t ngx_http_check_imap_init(ngx_http_check_peer_t *peer);
 static ngx_int_t ngx_http_check_imap_parse(ngx_http_check_peer_t *peer);
 static void ngx_http_check_imap_reinit(ngx_http_check_peer_t *peer);
 
+static ngx_int_t ngx_http_check_ajp_init(ngx_http_check_peer_t *peer);
+static ngx_int_t ngx_http_check_ajp_parse(ngx_http_check_peer_t *peer);
+static void ngx_http_check_ajp_reinit(ngx_http_check_peer_t *peer);
+
 
 #define RANDOM "NGX_HTTP_CHECK_SSL_HELLO\n\n\n\n\n"
 
@@ -52,32 +56,38 @@ static void ngx_http_check_imap_reinit(ngx_http_check_peer_t *peer);
  */
 const char sslv3_client_hello_pkt[] = {
     "\x16"                /* ContentType         : 0x16 = Hanshake           */
-        "\x03\x00"            /* ProtocolVersion     : 0x0300 = SSLv3            */
-        "\x00\x79"            /* ContentLength       : 0x79 bytes after this one */
-        "\x01"                /* HanshakeType        : 0x01 = CLIENT HELLO       */
-        "\x00\x00\x75"        /* HandshakeLength     : 0x75 bytes after this one */
-        "\x03\x00"            /* Hello Version       : 0x0300 = v3               */
-        "\x00\x00\x00\x00"    /* Unix GMT Time (s)   : filled with <now> (@0x0B) */
-        RANDOM                /* Random   : must be exactly 28 bytes  */
-        "\x00"                /* Session ID length   : empty (no session ID)     */
-        "\x00\x4E"            /* Cipher Suite Length : 78 bytes after this one   */
-        "\x00\x01" "\x00\x02" "\x00\x03" "\x00\x04" /* 39 most common ciphers :  */
-        "\x00\x05" "\x00\x06" "\x00\x07" "\x00\x08" /* 0x01...0x1B, 0x2F...0x3A  */
-        "\x00\x09" "\x00\x0A" "\x00\x0B" "\x00\x0C" /* This covers RSA/DH,       */
-        "\x00\x0D" "\x00\x0E" "\x00\x0F" "\x00\x10" /* various bit lengths,      */
-        "\x00\x11" "\x00\x12" "\x00\x13" "\x00\x14" /* SHA1/MD5, DES/3DES/AES... */
-        "\x00\x15" "\x00\x16" "\x00\x17" "\x00\x18"
-        "\x00\x19" "\x00\x1A" "\x00\x1B" "\x00\x2F"
-        "\x00\x30" "\x00\x31" "\x00\x32" "\x00\x33"
-        "\x00\x34" "\x00\x35" "\x00\x36" "\x00\x37"
-        "\x00\x38" "\x00\x39" "\x00\x3A"
-        "\x01"                /* Compression Length  : 0x01 = 1 byte for types   */
-        "\x00"                /* Compression Type    : 0x00 = NULL compression   */
+    "\x03\x00"            /* ProtocolVersion     : 0x0300 = SSLv3            */
+    "\x00\x79"            /* ContentLength       : 0x79 bytes after this one */
+    "\x01"                /* HanshakeType        : 0x01 = CLIENT HELLO       */
+    "\x00\x00\x75"        /* HandshakeLength     : 0x75 bytes after this one */
+    "\x03\x00"            /* Hello Version       : 0x0300 = v3               */
+    "\x00\x00\x00\x00"    /* Unix GMT Time (s)   : filled with <now> (@0x0B) */
+    RANDOM                /* Random   : must be exactly 28 bytes  */
+    "\x00"                /* Session ID length   : empty (no session ID)     */
+    "\x00\x4E"            /* Cipher Suite Length : 78 bytes after this one   */
+    "\x00\x01" "\x00\x02" "\x00\x03" "\x00\x04" /* 39 most common ciphers :  */
+    "\x00\x05" "\x00\x06" "\x00\x07" "\x00\x08" /* 0x01...0x1B, 0x2F...0x3A  */
+    "\x00\x09" "\x00\x0A" "\x00\x0B" "\x00\x0C" /* This covers RSA/DH,       */
+    "\x00\x0D" "\x00\x0E" "\x00\x0F" "\x00\x10" /* various bit lengths,      */
+    "\x00\x11" "\x00\x12" "\x00\x13" "\x00\x14" /* SHA1/MD5, DES/3DES/AES... */
+    "\x00\x15" "\x00\x16" "\x00\x17" "\x00\x18"
+    "\x00\x19" "\x00\x1A" "\x00\x1B" "\x00\x2F"
+    "\x00\x30" "\x00\x31" "\x00\x32" "\x00\x33"
+    "\x00\x34" "\x00\x35" "\x00\x36" "\x00\x37"
+    "\x00\x38" "\x00\x39" "\x00\x3A"
+    "\x01"                /* Compression Length  : 0x01 = 1 byte for types   */
+    "\x00"                /* Compression Type    : 0x00 = NULL compression   */
 };
 
 
 #define HANDSHAKE    0x16
 #define SERVER_HELLO 0x02
+
+#define AJP_CPING  0x0a
+#define AJP_CPONG  0x09
+
+const char ajp_cping_packet[] ={0x12, 0x34, 0x00, 0x01, AJP_CPING, 0x00}; 
+const char ajp_cpong_packet[] ={0x41, 0x42, 0x00, 0x01, AJP_CPONG}; 
 
 check_conf_t  ngx_check_types[] = {
     {
@@ -162,6 +172,18 @@ check_conf_t  ngx_check_types[] = {
         ngx_http_check_imap_init,
         ngx_http_check_imap_parse,
         ngx_http_check_imap_reinit,
+        1
+    },
+    {
+        NGX_HTTP_CHECK_AJP,
+        "ajp",
+        ngx_string(ajp_cping_packet),
+        0,
+        ngx_http_check_send_handler,
+        ngx_http_check_recv_handler,
+        ngx_http_check_ajp_init,
+        ngx_http_check_ajp_parse,
+        ngx_http_check_ajp_reinit,
         1
     },
 
@@ -1170,6 +1192,68 @@ ngx_http_check_imap_parse(ngx_http_check_peer_t *peer)
 
 static void
 ngx_http_check_imap_reinit(ngx_http_check_peer_t *peer) 
+{
+    ngx_http_check_ctx *ctx;
+
+    ctx = peer->check_data;
+
+    ctx->send.pos = ctx->send.start;
+    ctx->send.last = ctx->send.end;
+
+    ctx->recv.pos = ctx->recv.last = ctx->recv.start;
+}
+
+
+static ngx_int_t 
+ngx_http_check_ajp_init(ngx_http_check_peer_t *peer) 
+{
+    ngx_http_check_ctx                  *ctx;
+    ngx_http_upstream_check_srv_conf_t  *ucscf;
+
+    ctx = peer->check_data;
+    ucscf = peer->conf;
+
+    ctx->send.start = ctx->send.pos = (u_char *)ucscf->send.data;
+    ctx->send.end = ctx->send.last = ctx->send.start + ucscf->send.len;
+
+    ctx->recv.start = ctx->recv.pos = NULL;
+    ctx->recv.end = ctx->recv.last = NULL;
+
+    return NGX_OK;
+}
+
+
+static ngx_int_t 
+ngx_http_check_ajp_parse(ngx_http_check_peer_t *peer) 
+{
+    u_char                        *p;
+    ajp_raw_packet_t              *ajp;
+    ngx_http_check_ctx            *ctx;
+
+    ctx = peer->check_data;
+
+    if ((size_t)(ctx->recv.last - ctx->recv.start) < sizeof(ajp_cpong_packet)) {
+        return NGX_AGAIN;
+    }
+
+    p = ctx->recv.start;
+
+    ajp = (ajp_raw_packet_t *)p;
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+            "ajp_parse: preamble=0x%xd, length=0x%xd, type=0x%xd",
+            ntohs(ajp->preamble), ntohs(ajp->length), ajp->type);
+
+    if (ngx_memcmp(ajp_cpong_packet, p, sizeof(ajp_cpong_packet)) == 0) {
+        return NGX_OK;
+    }
+    else {
+        return NGX_ERROR;
+    }
+}
+
+
+static void
+ngx_http_check_ajp_reinit(ngx_http_check_peer_t *peer) 
 {
     ngx_http_check_ctx *ctx;
 

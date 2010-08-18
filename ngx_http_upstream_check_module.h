@@ -29,6 +29,7 @@ typedef void (*ngx_http_check_packet_clean_pt)(ngx_http_check_peer_t *peer);
 #define NGX_HTTP_CHECK_MYSQL            0x0010
 #define NGX_HTTP_CHECK_POP3             0x0020
 #define NGX_HTTP_CHECK_IMAP             0x0040
+#define NGX_HTTP_CHECK_AJP              0x0080
 
 
 #define NGX_CHECK_HTTP_2XX             0x0002

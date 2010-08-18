@@ -32,13 +32,18 @@ typedef struct {
 } __attribute__((packed)) server_ssl_hello_t;
 
 typedef struct {
-
     u_char                 packet_length[3];
     u_char                 packet_number;
 
     u_char                 protocol_version;
     u_char                 others[0];
 } __attribute__((packed)) mysql_handshake_init_t;
+
+typedef struct {
+    uint16_t               preamble;
+    uint16_t               length;
+    u_char                 type;
+} __attribute__((packed)) ajp_raw_packet_t;
 
 typedef struct {
     ngx_buf_t send;
