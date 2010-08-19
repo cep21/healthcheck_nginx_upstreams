@@ -182,7 +182,7 @@ static char *
 ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
 {
     ngx_str_t                           *value, s;
-    ngx_uint_t                           i, rise, fall;
+    ngx_uint_t                           i, rise, fall, default_down;
     ngx_msec_t                           interval, timeout;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
 
@@ -191,6 +191,7 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     fall = 5;
     interval = 30000;
     timeout = 1000;
+    default_down = 1;
 
     value = cf->args->elts;
 
@@ -262,6 +263,24 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             continue;
         }
 
+        if (ngx_strncmp(value[i].data, "default_down=", 13) == 0) {
+            s.len = value[i].len - 13;
+            s.data = value[i].data + 13;
+
+            if (ngx_strcasecmp(s.data, (u_char *) "true") == 0) {
+                default_down = 1;
+            } else if (ngx_strcasecmp(s.data, (u_char *) "false") == 0) {
+                default_down = 0;
+            } else {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                        "invalid value \"%s\", it must be \"true\" or \"false\"",
+                        value[i].data);
+                return NGX_CONF_ERROR;
+            }
+
+            continue;
+        }
+
         goto invalid_check_parameter;
     }
 
@@ -269,6 +288,7 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ucscf->check_timeout = timeout;
     ucscf->fall_count = fall;
     ucscf->rise_count = rise;
+    ucscf->default_down = default_down;
 
     if (ucscf->check_type_conf == NGX_CONF_UNSET_PTR) {
         s.len = sizeof("tcp") - 1;
@@ -563,6 +583,7 @@ ngx_http_upstream_check_init_srv_conf(ngx_conf_t *cf, void *conf)
 
     return NGX_CONF_OK;
 }
+
 
 static ngx_int_t 
 ngx_http_check_init_process(ngx_cycle_t *cycle) 

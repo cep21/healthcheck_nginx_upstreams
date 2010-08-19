@@ -46,9 +46,9 @@ Add the support of health check with the upstream servers.
 
 == check ==
 
-'''syntax:''' ''check interval=milliseconds [fall=count] [rise=count] [timeout=milliseconds] [type=tcp|ssl_hello|smtp|mysql|pop3|imap|ajp]''
+'''syntax:''' ''check interval=milliseconds [fall=count] [rise=count] [timeout=milliseconds] [default_down=true|false] [type=tcp|ssl_hello|smtp|mysql|pop3|imap|ajp]''
 
-'''default:''' ''none, if parameters omitted, default parameters are interval=30000 fall=5 rise=2 timeout=1000''
+'''default:''' ''none, if parameters omitted, default parameters are interval=30000 fall=5 rise=2 timeout=1000 default_down=true type=tcp''
 
 '''context:''' ''upstream''
 
@@ -60,6 +60,7 @@ The parameters' meanings are:
 * ''fall''(fall_count): After fall_count check failures, the server is marked down. 
 * ''rise''(rise_count): After rise_count check success, the server is marked up. 
 * ''timeout'': the check request's timeout.
+* ''default_down'': set initial state of backend server, default is down.
 * ''type'': the check protocol type:
 # ''tcp'' is a simple tcp socket connect and peek one byte. 
 # ''ssl_hello'' sends a client ssl hello packet and receives the server ssl hello packet.

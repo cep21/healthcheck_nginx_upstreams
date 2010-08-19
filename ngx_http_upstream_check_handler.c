@@ -258,9 +258,11 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 {
     ngx_uint_t                       i;
     ngx_slab_pool_t                 *shpool;
+    ngx_http_check_peer_t           *peer;
     ngx_http_check_peers_t          *peers;
     ngx_http_check_peer_shm_t       *peer_shm;
     ngx_http_check_peers_shm_t      *peers_shm;
+    ngx_http_upstream_check_srv_conf_t  *ucscf;
 
     peers = shm_zone->data;
 
@@ -285,9 +287,11 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
     }
 
     peers_shm->generation = ngx_http_check_shm_generation;
+    peer = peers->peers.elts;
 
     for (i = 0; i < peers->peers.nelts; i++) {
         peer_shm = &peers_shm->peers[i];
+        ucscf = peer[i].conf;
 
         peer_shm->owner = NGX_INVALID_PID;
 
@@ -298,7 +302,7 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
         peer_shm->rise_count = 0;
 
         peer_shm->business = 0;
-        peer_shm->down = 1;
+        peer_shm->down = ucscf->default_down;
     }
 
     peers->peers_shm = peers_shm;
@@ -430,6 +434,7 @@ ngx_http_check_clear_all_events()
         }
         if (peer[i].pool != NULL) {
             ngx_destroy_pool(peer[i].pool);
+            peer[i].pool = NULL;
         }
     }
 }

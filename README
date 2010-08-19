@@ -41,10 +41,11 @@ Description
 Directives
   check
     syntax: *check interval=milliseconds [fall=count] [rise=count]
-    [timeout=milliseconds] [type=tcp|ssl_hello|smtp|mysql|pop3|imap|ajp]*
+    [timeout=milliseconds] [default_down=true|false]
+    [type=tcp|ssl_hello|smtp|mysql|pop3|imap|ajp]*
 
     default: *none, if parameters omitted, default parameters are
-    interval=30000 fall=5 rise=2 timeout=1000*
+    interval=30000 fall=5 rise=2 timeout=1000 default_down=true type=tcp*
 
     context: *upstream*
 
@@ -61,6 +62,9 @@ Directives
         marked up.
 
     *   *timeout*: the check request's timeout.
+
+    *   *default_down*: set initial state of backend server, default is
+        down.
 
     *   *type*: the check protocol type:
 

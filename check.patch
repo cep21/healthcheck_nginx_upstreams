@@ -12,7 +12,7 @@ index 4e3c3ed..08a3505 100644
      ctx->main_conf = http_ctx->main_conf;
  
 diff --git a/src/http/ngx_http_upstream_round_robin.c b/src/http/ngx_http_upstream_round_robin.c
-index 52bd808..5aa6ec3 100644
+index 52bd808..bafb1ee 100644
 --- a/src/http/ngx_http_upstream_round_robin.c
 +++ b/src/http/ngx_http_upstream_round_robin.c
 @@ -65,6 +65,15 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
@@ -22,7 +22,7 @@ index 52bd808..5aa6ec3 100644
 +
 +                if (!server[i].down) {
 +                    peers->peer[n].check_index = 
-+                        ngx_http_check_add_peer(cf, &server[i].addrs[j]);
++                        ngx_http_check_add_peer(cf, us, &server[i].addrs[j]);
 +                }
 +                else {
 +                    peers->peer[n].check_index = (ngx_uint_t) NGX_ERROR;
@@ -38,7 +38,7 @@ index 52bd808..5aa6ec3 100644
 +
 +                if (!server[i].down) {
 +                    peers->peer[n].check_index = 
-+                        ngx_http_check_add_peer(cf, &server[i].addrs[j]);
++                        ngx_http_check_add_peer(cf, us, &server[i].addrs[j]);
 +                }
 +                else {
 +                    peers->peer[n].check_index = (ngx_uint_t) NGX_ERROR;
