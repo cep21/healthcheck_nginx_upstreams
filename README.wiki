@@ -148,6 +148,8 @@ Grab the nginx source code from [http://nginx.org/ nginx.org], for example, the 
     $ make
     $ make install
 </geshi>
+
+The patch just adds the support for Round-Robin upstream module. But it's easy to expand my module to other upstream modules. See the patch for detail.
     
 = Compatibility =
 
