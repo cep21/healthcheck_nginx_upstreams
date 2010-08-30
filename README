@@ -158,9 +158,7 @@ Directives
 
 Installation
     Download the latest version of the release tarball of this module from
-    github
-    (<http://github.com/yaoweibin/healthcheck_nginx_upstreams/tree/tcp_check
-    >)
+    github (<http://github.com/yaoweibin/nginx_upstream_check_module>)
 
     Grab the nginx source code from nginx.org (<http://nginx.org/>), for
     example, the version 0.7.67 (see nginx compatibility), and then build

@@ -133,7 +133,7 @@ The parameters' meanings are:
 
 = Installation =
 
-Download the latest version of the release tarball of this module from [http://github.com/yaoweibin/healthcheck_nginx_upstreams/tree/tcp_check github]
+Download the latest version of the release tarball of this module from [http://github.com/yaoweibin/nginx_upstream_check_module github]
 
 Grab the nginx source code from [http://nginx.org/ nginx.org], for example, the version 0.7.67 (see nginx compatibility), and then build the source with this module:
 
