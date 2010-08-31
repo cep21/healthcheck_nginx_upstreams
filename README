@@ -30,7 +30,7 @@ Synopsis
         server {
             listen 80;
 
-            proxy_pass cluster;
+            proxy_pass http://cluster;
         }
 
     }
