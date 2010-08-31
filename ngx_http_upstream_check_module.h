@@ -8,6 +8,8 @@
 #include <ngx_event_connect.h>
 #include <ngx_event_pipe.h>
 #include <ngx_http.h>
+#include <nginx.h>
+
 
 typedef struct ngx_http_check_peer_s ngx_http_check_peer_t;
 typedef struct ngx_http_check_peers_s ngx_http_check_peers_t;
