@@ -1,8 +1,18 @@
 diff --git a/src/http/ngx_http_upstream_round_robin.c b/src/http/ngx_http_upstream_round_robin.c
-index 52bd808..69f0c14 100644
+index 52bd808..90e014b 100644
 --- a/src/http/ngx_http_upstream_round_robin.c
 +++ b/src/http/ngx_http_upstream_round_robin.c
-@@ -65,6 +65,17 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
+@@ -8,6 +8,9 @@
+ #include <ngx_core.h>
+ #include <ngx_http.h>
+ 
++#if (NGX_UPSTREAM_CHECK_MODULE)
++#include "ngx_http_upstream_check_handler.h"
++#endif
+ 
+ static ngx_int_t ngx_http_upstream_cmp_servers(const void *one,
+     const void *two);
+@@ -65,6 +68,17 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                  peers->peer[n].down = server[i].down;
                  peers->peer[n].weight = server[i].down ? 0 : server[i].weight;
                  peers->peer[n].current_weight = peers->peer[n].weight;
@@ -20,7 +30,7 @@ index 52bd808..69f0c14 100644
                  n++;
              }
          }
-@@ -118,6 +129,17 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
+@@ -118,6 +132,17 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                  backup->peer[n].max_fails = server[i].max_fails;
                  backup->peer[n].fail_timeout = server[i].fail_timeout;
                  backup->peer[n].down = server[i].down;
@@ -38,7 +48,20 @@ index 52bd808..69f0c14 100644
                  n++;
              }
          }
-@@ -425,6 +447,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -398,7 +423,11 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+ 
+     if (rrp->peers->single) {
+         peer = &rrp->peers->peer[0];
+-
++#if (NGX_UPSTREAM_CHECK_MODULE)
++        if (ngx_http_check_peer_down(peer->check_index)) {
++            return NGX_BUSY;
++        }
++#endif
+     } else {
+ 
+         /* there are several peers */
+@@ -425,6 +454,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
  
                      if (!peer->down) {
  
@@ -48,7 +71,7 @@ index 52bd808..69f0c14 100644
                          if (peer->max_fails == 0
                              || peer->fails < peer->max_fails)
                          {
-@@ -435,6 +460,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -435,6 +467,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
                              peer->fails = 0;
                              break;
                          }
@@ -58,7 +81,7 @@ index 52bd808..69f0c14 100644
  
                          peer->current_weight = 0;
  
-@@ -473,6 +501,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -473,6 +508,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
  
                      if (!peer->down) {
  
@@ -68,7 +91,7 @@ index 52bd808..69f0c14 100644
                          if (peer->max_fails == 0
                              || peer->fails < peer->max_fails)
                          {
-@@ -483,6 +514,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -483,6 +521,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
                              peer->fails = 0;
                              break;
                          }
@@ -79,20 +102,10 @@ index 52bd808..69f0c14 100644
                          peer->current_weight = 0;
  
 diff --git a/src/http/ngx_http_upstream_round_robin.h b/src/http/ngx_http_upstream_round_robin.h
-index 2213154..68684a4 100644
+index 2213154..fcdc3a0 100644
 --- a/src/http/ngx_http_upstream_round_robin.h
 +++ b/src/http/ngx_http_upstream_round_robin.h
-@@ -12,6 +12,9 @@
- #include <ngx_core.h>
- #include <ngx_http.h>
- 
-+#if (NGX_UPSTREAM_CHECK_MODULE)
-+#include "ngx_http_upstream_check_handler.h"
-+#endif
- 
- typedef struct {
-     struct sockaddr                *sockaddr;
-@@ -27,6 +30,10 @@ typedef struct {
+@@ -27,6 +27,10 @@ typedef struct {
      ngx_uint_t                      max_fails;
      time_t                          fail_timeout;
  

@@ -317,7 +317,7 @@ ngx_http_upstream_check_http_send(ngx_conf_t *cf, ngx_command_t *cmd, void *conf
 
     ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
 
-    ucscf->send = *value;
+    ucscf->send = value[1];
 
     return NGX_CONF_OK;
 }
@@ -333,7 +333,7 @@ ngx_http_upstream_check_smtp_send(ngx_conf_t *cf, ngx_command_t *cmd, void *conf
 
     ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
 
-    ucscf->send = *value;
+    ucscf->send = value[1];
 
     return NGX_CONF_OK;
 }
@@ -547,7 +547,11 @@ ngx_http_upstream_check_init_srv_conf(ngx_conf_t *cf, void *conf)
     ngx_http_upstream_srv_conf_t        *us = conf;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
 
-    ucscf= ngx_http_conf_upstream_srv_conf(us, ngx_http_upstream_check_module);
+    if (us->srv_conf == NULL) {
+        return NGX_CONF_OK;
+    }
+
+    ucscf = ngx_http_conf_upstream_srv_conf(us, ngx_http_upstream_check_module);
 
     if (ucscf->fall_count == NGX_CONF_UNSET_UINT) {
         ucscf->fall_count = 2;

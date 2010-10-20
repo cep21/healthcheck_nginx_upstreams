@@ -2,6 +2,7 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
+#include "ngx_http_upstream_check_handler.h"
 
 /* ngx_spinlock is defined without a matching unlock primitive */
 #define ngx_spinlock_unlock(lock)       (void) ngx_atomic_cmp_set(lock, ngx_pid, 0)
@@ -201,7 +202,7 @@ ngx_http_check_peer_down(ngx_uint_t index)
     ngx_http_check_peer_t     *peer;
 
     if (check_peers_ctx == NULL || index >= check_peers_ctx->peers.nelts) {
-        return 1;
+        return 0;
     }
 
     peer = check_peers_ctx->peers.elts;
@@ -1606,7 +1607,14 @@ ngx_http_check_add_timers(ngx_cycle_t *cycle)
     ngx_http_upstream_check_srv_conf_t *ucscf;
 
     peers = check_peers_ctx;
+    if (peers == NULL) {
+        return NGX_OK;
+    }
+
     peers_shm = peers->peers_shm;
+    if (peers_shm == NULL) {
+        return NGX_OK;
+    }
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cycle->log, 0, 
             "http check upstream init_process, shm_name: %V, peer number: %ud",
