@@ -33,6 +33,7 @@ __DATA__
 --- config
     upstream test{
         server 127.0.0.1:80;
+        server 127.0.0.1:81;
 
         #ip_hash;
         check interval=3000 rise=2 fall=5 timeout=1000;
