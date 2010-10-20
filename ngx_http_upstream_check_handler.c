@@ -46,7 +46,7 @@ static ngx_int_t ngx_http_check_ajp_parse(ngx_http_check_peer_t *peer);
 static void ngx_http_check_ajp_reinit(ngx_http_check_peer_t *peer);
 
 
-#define RANDOM "NGX_HTTP_CHECK_SSL_HELLO\n\n\n\n\n"
+#define RANDOM "NGX_HTTP_CHECK_SSL_HELLO\n\n\n\n"
 
 /* This is the SSLv3 CLIENT HELLO packet used in conjunction with the
  * check type of ssl_hello to ensure that the remote server speaks SSL.
