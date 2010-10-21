@@ -4,6 +4,7 @@
 #include <ngx_http.h>
 #include "ngx_http_upstream_check_handler.h"
 
+
 /* ngx_spinlock is defined without a matching unlock primitive */
 #define ngx_spinlock_unlock(lock)       (void) ngx_atomic_cmp_set(lock, ngx_pid, 0)
 
@@ -1288,6 +1289,8 @@ ngx_http_check_send_handler(ngx_event_t *event)
     c = event->data;
     peer = c->data;
 
+    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http check send.");
+
     if (c->pool == NULL) {
         ngx_log_error(NGX_LOG_ERR, event->log, 0,
                 "check pool NULL with peer: %V ", &peer->peer_addr->name);
@@ -1511,6 +1514,11 @@ ngx_http_check_connect_handler(ngx_event_t *event)
     c->read->handler = peer->recv_handler;
 
     ngx_add_timer(&peer->check_timeout_ev, ucscf->check_timeout);
+
+    /* The kqueue's loop interface need it. */
+    if (rc == NGX_OK) { 
+        c->write->handler(c->write);
+    }
 }
 
 
@@ -1534,10 +1542,10 @@ ngx_http_check_begin_handler(ngx_event_t *event)
         return;
     }
 
-    ngx_log_debug4(NGX_LOG_DEBUG_HTTP, event->log, 0, 
-            "http check begin handler index:%ud, owner: %d, ngx_pid: %ud, time:%ud", 
+    ngx_log_debug5(NGX_LOG_DEBUG_HTTP, event->log, 0, 
+            "http check begin handler index:%ud, owner: %d, ngx_pid: %ud, time:%ud, interal:%ud", 
             peer->index, peer->shm->owner, ngx_pid, 
-            (ngx_current_msec - peer->shm->access_time));
+            (ngx_current_msec - peer->shm->access_time), ucscf->check_interval);
 
     ngx_spinlock(&peer->shm->lock, ngx_pid, 1024);
 

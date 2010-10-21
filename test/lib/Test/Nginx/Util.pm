@@ -412,9 +412,10 @@ start_nginx:
                 }
             }
 
-            sleep 6;
         }
     }
+
+    sleep 6;
 
     my $i = 0;
     while ($i++ < $RepeatEach) {

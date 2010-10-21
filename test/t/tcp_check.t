@@ -32,11 +32,10 @@ __DATA__
 === TEST 1: the tcp_check test
 --- config
     upstream test{
-        server 127.0.0.1:80;
-        server 127.0.0.1:81;
+        server blog.163.com:80;
 
         #ip_hash;
-        check interval=3000 rise=2 fall=5 timeout=1000;
+        check interval=3000 rise=1 fall=5 timeout=1000;
     }
 
     server {
