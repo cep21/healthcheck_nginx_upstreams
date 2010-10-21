@@ -160,6 +160,10 @@ ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us,
     ngx_http_upstream_check_srv_conf_t   *ucscf;
     ngx_http_upstream_check_main_conf_t  *ucmcf; 
 
+    if (us->srv_conf == NULL) {
+        return NGX_ERROR;
+    }
+
     ucscf = ngx_http_conf_upstream_srv_conf(us, ngx_http_upstream_check_module);
 
     if(ucscf->check_interval == 0) {
