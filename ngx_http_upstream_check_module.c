@@ -174,6 +174,9 @@ ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us,
     peers = ucmcf->peers;
 
     peer = ngx_array_push(&peers->peers);
+
+    ngx_memzero(peer, sizeof(ngx_http_check_peer_t));
+
     peer->index = peers->peers.nelts - 1;
     peer->conf = ucscf;
     peer->peer_addr = peer_addr;

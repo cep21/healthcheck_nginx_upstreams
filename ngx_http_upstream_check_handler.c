@@ -1300,6 +1300,11 @@ ngx_http_check_send_handler(ngx_event_t *event)
 
     if (peer->state != NGX_HTTP_CHECK_CONNECT_DONE) {
         if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
+
+            ngx_log_error(NGX_LOG_ERR, event->log, 0,
+                    "check handle write event error with peer: %V ",
+                    &peer->peer_addr->name);
+
             goto check_send_fail;
         }
 
@@ -1308,7 +1313,7 @@ ngx_http_check_send_handler(ngx_event_t *event)
 
     if (peer->check_data == NULL) {
 
-        peer->check_data = ngx_pcalloc(c->pool, sizeof(ngx_http_check_ctx));
+        peer->check_data = ngx_pcalloc(peer->pool, sizeof(ngx_http_check_ctx));
         if (peer->check_data == NULL) {
             goto check_send_fail;
         }
@@ -1562,6 +1567,7 @@ ngx_http_check_begin_handler(ngx_event_t *event)
     }
 }
 
+
 char * 
 ngx_http_upstream_check_init_shm(ngx_conf_t *cf, void *conf)
 {
@@ -1582,7 +1588,7 @@ ngx_http_upstream_check_init_shm(ngx_conf_t *cf, void *conf)
             return NGX_CONF_ERROR;
         }
 
-        /*the default check shmare memory size*/
+        /*the default check share memory size*/
         shm_size = (umcf->upstreams.nelts + 1 )* ngx_pagesize;
 
         shm_size = shm_size < ucmcf->check_shm_size ? ucmcf->check_shm_size : shm_size;
@@ -1736,7 +1742,7 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
     peer = peers->peers.elts;
     peer_shm = peers_shm->peers;
 
-    b = ngx_create_temp_buf(r->pool, ngx_pagesize);
+    b = ngx_create_temp_buf(r->pool, 16 * ngx_pagesize);
     if (b == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
