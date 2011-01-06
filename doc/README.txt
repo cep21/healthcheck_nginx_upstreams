@@ -1,0 +1,242 @@
+Name
+    nginx_http_upstream_check_module - support health check with Nginx
+
+Status
+    This module is at its very early phase of development and considered
+    highly experimental. But you're encouraged to test it out on your side
+    and report any quirks that you experience.
+
+    We need your help! If you find this module useful and/or interesting,
+    please consider joining the development!
+
+Synopsis
+    http {
+
+        upstream cluster {
+
+            # simple round-robin
+            server 127.0.0.1:3306;
+            server 127.0.0.1:1234;
+
+            check interval=3000 rise=2 fall=5 timeout=1000;
+
+            #check interval=3000 rise=2 fall=5 timeout=1000 type=ssl_hello;
+
+            #check interval=3000 rise=2 fall=5 timeout=1000 type=http;
+            #check_http_send "GET / HTTP/1.0\r\n\r\n";
+            #check_http_expect_alive http_2xx http_3xx;
+        }
+
+        server {
+            listen 80;
+
+            proxy_pass http://cluster;
+        }
+
+    }
+
+Description
+    Add the support of health check with the upstream servers.
+
+Directives
+  check
+    syntax: *check interval=milliseconds [fall=count] [rise=count]
+    [timeout=milliseconds] [default_down=true|false]
+    [type=tcp|ssl_hello|smtp|mysql|pop3|imap|ajp]*
+
+    default: *none, if parameters omitted, default parameters are
+    interval=30000 fall=5 rise=2 timeout=1000 default_down=true type=tcp*
+
+    context: *upstream*
+
+    description: Add the health check for the upstream servers.
+
+    The parameters' meanings are:
+
+    *   *interval*: the check request's interval time.
+
+    *   *fall*(fall_count): After fall_count check failures, the server is
+        marked down.
+
+    *   *rise*(rise_count): After rise_count check success, the server is
+        marked up.
+
+    *   *timeout*: the check request's timeout.
+
+    *   *default_down*: set initial state of backend server, default is
+        down.
+
+    *   *type*: the check protocol type:
+
+        1.  *tcp* is a simple tcp socket connect and peek one byte.
+
+        2.  *ssl_hello* sends a client ssl hello packet and receives the
+            server ssl hello packet.
+
+        3.  *http* sends a http requst packet, recvives and parses the http
+            response to diagnose if the upstream server is alive.
+
+        4.  *smtp* sends a smtp requst packet, recvives and parses the smtp
+            response to diagnose if the upstream server is alive. The
+            response begins with '2' should be an OK response.
+
+        5.  *mysql* connects to the mysql server, recvives the greeting
+            response to diagnose if the upstream server is alive.
+
+        6.  *pop3* recvives and parses the pop3 response to diagnose if the
+            upstream server is alive. The response begins with '+' should be
+            an OK response.
+
+        7.  *imap* connects to the imap server, recvives the greeting
+            response to diagnose if the upstream server is alive.
+
+        8.  *ajp* sends a AJP Cping packet, recvives and parses the AJP
+            Cpong response to diagnose if the upstream server is alive.
+
+  check_http_send
+    syntax: *check_http_send http_packet*
+
+    default: *"GET / HTTP/1.0\r\n\r\n"*
+
+    context: *upstream*
+
+    description: If you set the check type is http, then the check function
+    will sends this http packet to check the upstream server.
+
+  check_http_expect_alive
+    syntax: *check_http_expect_alive [ http_2xx | http_3xx | http_4xx |
+    http_5xx ]*
+
+    default: *http_2xx | http_3xx*
+
+    context: *upstream*
+
+    description: These status codes indicate the upstream server's http
+    response is ok, the backend is alive.
+
+  check_smtp_send
+    syntax: *check_smtp_send smtp_packet*
+
+    default: *"HELO smtp.localdomain\r\n"*
+
+    context: *upstream*
+
+    description: If you set the check type is smtp, then the check function
+    will sends this smtp packet to check the upstream server.
+
+  check_smtp_expect_alive
+    syntax: *check_smtp_expect_alive [smtp_2xx | smtp_3xx | smtp_4xx |
+    smtp_5xx]*
+
+    default: *smtp_2xx*
+
+    context: *upstream*
+
+    description: These status codes indicate the upstream server's smtp
+    response is ok, the backend is alive.
+
+  check_shm_size
+    syntax: *check_shm_size size*
+
+    default: *(number_of_checked_upstream_blocks + 1) * pagesize*
+
+    context: *http*
+
+    description: If you store hundreds of serveres in one upstream block,
+    the shared memory for health check may be not enough, you can enlarged
+    it by this directive.
+
+  check_status
+    syntax: *check_status*
+
+    default: *none*
+
+    context: *location*
+
+    description: Display the health checking servers' status by HTTP. This
+    directive is set in the http block.
+
+Installation
+    Download the latest version of the release tarball of this module from
+    github (<http://github.com/yaoweibin/nginx_upstream_check_module>)
+
+    Grab the nginx source code from nginx.org (<http://nginx.org/>), for
+    example, the version 0.7.67 (see nginx compatibility), and then build
+    the source with this module:
+
+        $ wget 'http://nginx.org/download/nginx-0.7.67.tar.gz'
+        $ tar -xzvf nginx-0.7.67.tar.gz
+        $ cd nginx-0.7.67/
+        $ patch -p1 < /path/to/nginx_http_upstream_check_module/check.patch
+
+        $ ./configure --add-module=/path/to/nginx_http_upstream_check_module
+
+        $ make
+        $ make install
+
+    The patch just adds the support for Round-Robin upstream module. But
+    it's easy to expand my module to other upstream modules. See the patch
+    for detail.
+
+Compatibility
+    *   My test bed is 0.7.67 and 0.8.49.
+
+Notes
+    The http_response_parse.rl and smtp_response_parse.rl are ragel
+    (<http://www.complang.org/ragel/>) scripts , you can edit the script and
+    compile it like this:
+
+        $ ragel -G2 http_response_parse.rl
+        $ ragel -G2 smtp_response_parse.rl
+
+TODO
+Known Issues
+    *   Developing
+
+Changelogs
+  v0.1
+    *   first release
+
+Authors
+    Weibin Yao(姚伟斌) *yaoweibin at gmail dot com*
+
+    Matthieu Tourne
+
+Copyright & License
+    This README template copy from agentzh (<http://github.com/agentzh>).
+
+    The health check part is borrowed the design of Jack Lindamood's
+    healthcheck module healthcheck_nginx_upstreams
+    (<http://github.com/cep21/healthcheck_nginx_upstreams>);
+
+    This module is licensed under the BSD license.
+
+    Copyright (C) 2010 by Weibin Yao <yaoweibin@gmail.com>.
+
+    Copyright (C) 2010 by Matthieu Tourne.
+
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
+
+    *   Redistributions of source code must retain the above copyright
+        notice, this list of conditions and the following disclaimer.
+
+    *   Redistributions in binary form must reproduce the above copyright
+        notice, this list of conditions and the following disclaimer in the
+        documentation and/or other materials provided with the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+    IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+    TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+    TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
