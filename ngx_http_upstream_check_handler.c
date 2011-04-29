@@ -1603,6 +1603,9 @@ ngx_http_upstream_check_init_shm(ngx_conf_t *cf, void *conf)
 
         shm_zone->init = ngx_http_upstream_check_init_shm_zone;
     }
+    else {
+         check_peers_ctx = NULL;
+    }
 
     return NGX_CONF_OK;
 }
