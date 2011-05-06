@@ -1,8 +1,8 @@
 diff --git a/src/http/ngx_http_upstream.c b/src/http/ngx_http_upstream.c
-index ed86a38..19708d0 100644
+index dc2d0c0..11c8eed 100644
 --- a/src/http/ngx_http_upstream.c
 +++ b/src/http/ngx_http_upstream.c
-@@ -4146,6 +4146,17 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
+@@ -4267,6 +4267,17 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
      uscf->line = cf->conf_file->line;
      uscf->port = u->port;
      uscf->default_port = u->default_port;
@@ -21,12 +21,12 @@ index ed86a38..19708d0 100644
      if (u->naddrs == 1) {
          uscf->servers = ngx_array_create(cf->pool, 1,
 diff --git a/src/http/ngx_http_upstream.h b/src/http/ngx_http_upstream.h
-index 97ec71b..ff2772a 100644
+index 01e2e1e..72a16ca 100644
 --- a/src/http/ngx_http_upstream.h
 +++ b/src/http/ngx_http_upstream.h
-@@ -111,6 +111,24 @@ struct ngx_http_upstream_srv_conf_s {
-     ngx_uint_t                       retries;
- #endif
+@@ -106,6 +106,24 @@ struct ngx_http_upstream_srv_conf_s {
+ 
+     ngx_array_t                     *servers;  /* ngx_http_upstream_server_t */
  
 +#if (NGX_HTTP_HEALTHCHECK)
 +    // If true, healthchecking is enabled for this upstream
@@ -49,8 +49,10 @@ index 97ec71b..ff2772a 100644
      ngx_uint_t                       flags;
      ngx_str_t                        host;
      u_char                          *file_name;
---- a/src/http/ngx_http_upstream_round_robin.c	Mon Mar  8 20:55:32 2010
-+++ b/src/http/ngx_http_upstream_round_robin.c	Mon Mar  8 21:03:17 2010
+diff --git a/src/http/ngx_http_upstream_round_robin.c b/src/http/ngx_http_upstream_round_robin.c
+index 52bd808..a143fe6 100644
+--- a/src/http/ngx_http_upstream_round_robin.c
++++ b/src/http/ngx_http_upstream_round_robin.c
 @@ -4,6 +4,8 @@
   */
  
@@ -60,7 +62,17 @@ index 97ec71b..ff2772a 100644
  #include <ngx_config.h>
  #include <ngx_core.h>
  #include <ngx_http.h>
-@@ -55,6 +57,7 @@
+@@ -12,7 +14,8 @@
+ static ngx_int_t ngx_http_upstream_cmp_servers(const void *one,
+     const void *two);
+ static ngx_uint_t
+-ngx_http_upstream_get_peer(ngx_http_upstream_rr_peers_t *peers);
++ngx_http_upstream_get_peer(ngx_http_upstream_rr_peers_t *peers,
++    ngx_log_t * log);
+ 
+ 
+ ngx_int_t
+@@ -23,6 +26,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
      ngx_uint_t                     i, j, n;
      ngx_http_upstream_server_t    *server;
      ngx_http_upstream_rr_peers_t  *peers, *backup;
@@ -68,11 +80,10 @@ index 97ec71b..ff2772a 100644
  
      us->peer.init = ngx_http_upstream_init_round_robin_peer;
  
-@@ -91,6 +94,14 @@
-                 if (server[i].backup) {
+@@ -57,6 +61,14 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                      continue;
                  }
-+
+ 
 +                /* on top, so it won't collide with ngx_supervisord's patch */
 +                health_index = ngx_http_healthcheck_add_peer(us,
 +                                   &server[i].addrs[j], cf->pool);
@@ -80,12 +91,83 @@ index 97ec71b..ff2772a 100644
 +                    return NGX_ERROR;
 +                }
 +                peers->peer[n].health_index = health_index;
- 
++
                  peers->peer[n].sockaddr = server[i].addrs[j].sockaddr;
                  peers->peer[n].socklen = server[i].addrs[j].socklen;
---- a/src/http/ngx_http_upstream_round_robin.h	Mon Mar  8 21:00:58 2010
-+++ b/src/http/ngx_http_upstream_round_robin.h	Mon Mar  8 21:00:06 2010
-@@ -28,6 +28,7 @@
+                 peers->peer[n].name = server[i].addrs[j].name;
+@@ -365,6 +377,7 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+     ngx_connection_t              *c;
+     ngx_http_upstream_rr_peer_t   *peer;
+     ngx_http_upstream_rr_peers_t  *peers;
++    ngx_int_t                      healthy;
+ 
+     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
+                    "get rr peer, try: %ui", pc->tries);
+@@ -410,7 +423,7 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+             i = pc->tries;
+ 
+             for ( ;; ) {
+-                rrp->current = ngx_http_upstream_get_peer(rrp->peers);
++                rrp->current = ngx_http_upstream_get_peer(rrp->peers, pc->log);
+ 
+                 ngx_log_debug2(NGX_LOG_DEBUG_HTTP, pc->log, 0,
+                                "get rr peer, current: %ui %i",
+@@ -471,7 +484,11 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+ 
+                     peer = &rrp->peers->peer[rrp->current];
+ 
+-                    if (!peer->down) {
++                    healthy = !ngx_http_healthcheck_is_down(
++                                peer->health_index,
++                                pc->log);
++
++                    if ((!peer->down) && healthy) {
+ 
+                         if (peer->max_fails == 0
+                             || peer->fails < peer->max_fails)
+@@ -576,12 +593,14 @@ failed:
+ 
+ 
+ static ngx_uint_t
+-ngx_http_upstream_get_peer(ngx_http_upstream_rr_peers_t *peers)
++ngx_http_upstream_get_peer(ngx_http_upstream_rr_peers_t *peers, ngx_log_t *log)
+ {
+     ngx_uint_t                    i, n;
+     ngx_http_upstream_rr_peer_t  *peer;
++    ngx_uint_t                    health_check_rounds;
+ 
+     peer = &peers->peer[0];
++    health_check_rounds = 2;
+ 
+     for ( ;; ) {
+ 
+@@ -601,6 +620,11 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peers_t *peers)
+                     continue;
+                 }
+ 
++                if (health_check_rounds && ngx_http_healthcheck_is_down(
++                        peer[i].health_index,
++                        log))
++                    continue;
++
+                 if (peer[n].current_weight * 1000 / peer[i].current_weight
+                     > peer[n].weight * 1000 / peer[i].weight)
+                 {
+@@ -617,6 +641,9 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peers_t *peers)
+             return n;
+         }
+ 
++        if (health_check_rounds)
++            --health_check_rounds;
++
+         for (i = 0; i < peers->number; i++) {
+             peer[i].current_weight = peer[i].weight;
+         }
+diff --git a/src/http/ngx_http_upstream_round_robin.h b/src/http/ngx_http_upstream_round_robin.h
+index a9cb257..aee17b5 100644
+--- a/src/http/ngx_http_upstream_round_robin.h
++++ b/src/http/ngx_http_upstream_round_robin.h
+@@ -26,6 +26,7 @@ typedef struct {
  
      ngx_uint_t                      max_fails;
      time_t                          fail_timeout;
