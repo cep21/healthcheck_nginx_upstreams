@@ -1,5 +1,5 @@
 diff --git a/src/http/ngx_http_upstream_round_robin.c b/src/http/ngx_http_upstream_round_robin.c
-index 52bd808..dd589a9 100644
+index 52bd808..7e8af68 100644
 --- a/src/http/ngx_http_upstream_round_robin.c
 +++ b/src/http/ngx_http_upstream_round_robin.c
 @@ -8,6 +8,9 @@
@@ -37,11 +37,11 @@ index 52bd808..dd589a9 100644
 +
 +#if (NGX_UPSTREAM_CHECK_MODULE)
 +                if (!server[i].down) {
-+                    peers->peer[n].check_index = 
++                    backup->peer[n].check_index = 
 +                        ngx_http_check_add_peer(cf, us, &server[i].addrs[j]);
 +                }
 +                else {
-+                    peers->peer[n].check_index = (ngx_uint_t) NGX_ERROR;
++                    backup->peer[n].check_index = (ngx_uint_t) NGX_ERROR;
 +                }
 +#endif
 +
@@ -71,17 +71,19 @@ index 52bd808..dd589a9 100644
      } else {
  
          /* there are several peers */
-@@ -425,6 +457,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -425,6 +457,11 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
  
                      if (!peer->down) {
  
 +#if (NGX_UPSTREAM_CHECK_MODULE)
++                        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
++                                "get rr peer, check_index: %ui", peer->check_index);
 +                        if (!ngx_http_check_peer_down(peer->check_index)) {
 +#endif
                          if (peer->max_fails == 0
                              || peer->fails < peer->max_fails)
                          {
-@@ -435,6 +470,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -435,6 +472,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
                              peer->fails = 0;
                              break;
                          }
@@ -91,17 +93,19 @@ index 52bd808..dd589a9 100644
  
                          peer->current_weight = 0;
  
-@@ -473,6 +511,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -473,6 +513,11 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
  
                      if (!peer->down) {
  
 +#if (NGX_UPSTREAM_CHECK_MODULE)
++                        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
++                                "get rr peer2, check_index: %ui", peer->check_index);
 +                        if (!ngx_http_check_peer_down(peer->check_index)) {
 +#endif
                          if (peer->max_fails == 0
                              || peer->fails < peer->max_fails)
                          {
-@@ -483,6 +524,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -483,6 +528,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
                              peer->fails = 0;
                              break;
                          }
@@ -112,7 +116,7 @@ index 52bd808..dd589a9 100644
                          peer->current_weight = 0;
  
 diff --git a/src/http/ngx_http_upstream_round_robin.h b/src/http/ngx_http_upstream_round_robin.h
-index 2213154..fcdc3a0 100644
+index a9cb257..ac8fc5a 100644
 --- a/src/http/ngx_http_upstream_round_robin.h
 +++ b/src/http/ngx_http_upstream_round_robin.h
 @@ -27,6 +27,10 @@ typedef struct {
