@@ -411,10 +411,9 @@ static void
 ngx_http_check_clear_all_events()
 {
     ngx_uint_t                      i;
+    ngx_connection_t               *c;
     ngx_http_check_peer_t          *peer;
     ngx_http_check_peers_t         *peers;
-    ngx_http_check_peer_shm_t      *peer_shm;
-    ngx_http_check_peers_shm_t     *peers_shm;
 
     if (has_cleared || check_peers_ctx == NULL) {
         return;
@@ -423,16 +422,17 @@ ngx_http_check_clear_all_events()
     has_cleared = 1;
 
     peers = check_peers_ctx;
-    peers_shm = peers->peers_shm;
 
     peer = peers->peers.elts;
-    peer_shm = peers_shm->peers;
     for (i = 0; i < peers->peers.nelts; i++) {
         if (peer[i].check_ev.timer_set) {
             ngx_del_timer(&peer[i].check_ev);
         }
-        if (peer_shm[i].owner == ngx_pid) {
-            ngx_http_check_clean_event(&peer[i]);
+        /* Be careful, The shared memory may have been freed after reload */
+        if (peer->check_timeout_ev.timer_set) {
+            c = peer->pc.connection;
+            ngx_close_connection(c);
+            ngx_del_timer(&peer->check_timeout_ev);
         }
         if (peer[i].pool != NULL) {
             ngx_destroy_pool(peer[i].pool);
