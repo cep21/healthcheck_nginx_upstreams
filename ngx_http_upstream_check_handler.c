@@ -1766,12 +1766,11 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
             "<table style=\"background-color:white\" cellspacing=\"0\" cellpadding=\"3\" border=\"1\">\n"
             "  <tr bgcolor=\"#C0C0C0\">\n"
             "    <th>Index</th>\n"
+            "    <th>Upstream</th>\n"
             "    <th>Name</th>\n"
             "    <th>Status</th>\n"
-            "    <th>Business</th>\n"
             "    <th>Rise counts</th>\n"
             "    <th>Fall counts</th>\n"
-            "    <th>Access counts</th>\n"
             "    <th>Check type</th>\n"
             "  </tr>\n",
         peers->peers.nelts, &shm_name);
@@ -1781,21 +1780,19 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
                 "  <tr%s>\n"
                 "    <td>%ui</td>\n" 
                 "    <td>%V</td>\n" 
+                "    <td>%V</td>\n" 
                 "    <td>%s</td>\n" 
-                "    <td>%ui</td>\n" 
-                "    <td>%ui</td>\n" 
                 "    <td>%ui</td>\n" 
                 "    <td>%ui</td>\n" 
                 "    <td>%s</td>\n" 
                 "  </tr>\n",
                 peer_shm[i].down ? " bgcolor=\"#FF0000\"" : "",
                 i, 
+                peer[i].upstream_name, 
                 &peer[i].peer_addr->name, 
                 peer_shm[i].down ? "down" : "up",
-                peer_shm[i].business,
                 peer_shm[i].rise_count, 
                 peer_shm[i].fall_count, 
-                peer_shm[i].access_count, 
                 peer[i].conf->check_type_conf->name);
     }
 

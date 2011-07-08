@@ -179,6 +179,7 @@ ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us,
 
     peer->index = peers->peers.nelts - 1;
     peer->conf = ucscf;
+    peer->upstream_name = &us->host;
     peer->peer_addr = peer_addr;
 
     return peer->index;
