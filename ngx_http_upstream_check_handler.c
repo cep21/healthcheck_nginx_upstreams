@@ -457,13 +457,9 @@ ngx_http_check_need_exit()
 static void 
 ngx_http_check_finish_handler(ngx_event_t *event) 
 {
-    ngx_http_check_peer_t          *peer;
-
     if (ngx_http_check_need_exit()) {
         return;
     }
-
-    peer = event->data;
 }
 
 
