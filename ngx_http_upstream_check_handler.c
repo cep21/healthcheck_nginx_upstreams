@@ -551,6 +551,7 @@ void
 http_field(void *data, const char *field, 
         size_t flen, const char *value, size_t vlen)
 {
+#if (NGX_DEBUG)
     ngx_str_t str_field, str_value;
 
     str_field.data = (u_char *) field;
@@ -561,12 +562,14 @@ http_field(void *data, const char *field,
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "%V: %V", &str_field, &str_value);
+#endif
 }
 
 
 void 
 http_version(void *data, const char *at, size_t length)
 {
+#if (NGX_DEBUG)
     ngx_str_t str;
 
     str.data = (u_char *) at;
@@ -574,6 +577,7 @@ http_version(void *data, const char *at, size_t length)
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "VERSION: \"%V\"", &str);
+#endif
 }
 
 
@@ -583,14 +587,16 @@ status_code(void *data, const char *at, size_t length)
     ngx_http_check_peer_t *peer = data;
     ngx_http_check_ctx         *ctx;
     http_parser               *hp;
-    ngx_str_t                  str;
     int                        code;
 
+#if (NGX_DEBUG)
+    ngx_str_t                  str;
     str.data = (u_char *) at;
     str.len = length;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "STATUS_CODE: \"%V\"", &str);
+#endif
 
     ctx = peer->check_data;
     hp = ctx->parser;
@@ -618,6 +624,7 @@ status_code(void *data, const char *at, size_t length)
 void 
 reason_phrase(void *data, const char *at, size_t length)
 {
+#if (NGX_DEBUG)
     ngx_str_t str;
 
     str.data = (u_char *) at;
@@ -625,6 +632,7 @@ reason_phrase(void *data, const char *at, size_t length)
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "REASON_PHRASE: \"%V\"", &str);
+#endif
 }
 
 
@@ -812,6 +820,7 @@ ngx_http_check_ssl_hello_reinit(ngx_http_check_peer_t *peer)
 static void 
 domain(void *data, const char *at, size_t length)
 {
+#if (NGX_DEBUG)
     ngx_str_t str;
 
     str.data = (u_char *) at;
@@ -819,12 +828,14 @@ domain(void *data, const char *at, size_t length)
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "DOMAIN: \"%V\"", &str);
+#endif
 }
 
 
 static void 
 greeting_text(void *data, const char *at, size_t length)
 {
+#if (NGX_DEBUG)
     ngx_str_t str;
 
     str.data = (u_char *) at;
@@ -832,6 +843,7 @@ greeting_text(void *data, const char *at, size_t length)
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "GREETING_TEXT: \"%V\"", &str);
+#endif
 }
 
 
@@ -839,16 +851,19 @@ static void
 reply_code(void *data, const char *at, size_t length)
 {
     int                         code;
-    ngx_str_t                   str;
     smtp_parser                *sp;
     ngx_http_check_ctx         *ctx;
     ngx_http_check_peer_t      *peer = data;
+
+#if (NGX_DEBUG)
+    ngx_str_t                   str;
 
     str.data = (u_char *) at;
     str.len = length;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "REPLY_CODE: \"%V\"", &str);
+#endif
 
     ctx = peer->check_data;
     sp = ctx->parser;
@@ -876,6 +891,7 @@ reply_code(void *data, const char *at, size_t length)
 static void 
 reply_text(void *data, const char *at, size_t length)
 {
+#if (NGX_DEBUG)
     ngx_str_t str;
 
     str.data = (u_char *) at;
@@ -883,6 +899,7 @@ reply_text(void *data, const char *at, size_t length)
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "REPLY_TEXT: \"%V\"", &str);
+#endif
 }
 
 
@@ -1230,7 +1247,6 @@ static ngx_int_t
 ngx_http_check_ajp_parse(ngx_http_check_peer_t *peer) 
 {
     u_char                        *p;
-    ajp_raw_packet_t              *ajp;
     ngx_http_check_ctx            *ctx;
 
     ctx = peer->check_data;
@@ -1241,10 +1257,14 @@ ngx_http_check_ajp_parse(ngx_http_check_peer_t *peer)
 
     p = ctx->recv.start;
 
+#if (NGX_DEBUG)
+    ajp_raw_packet_t              *ajp;
+
     ajp = (ajp_raw_packet_t *)p;
     ngx_log_debug3(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "ajp_parse: preamble=0x%xd, length=0x%xd, type=0x%xd",
             ntohs(ajp->preamble), ntohs(ajp->length), ajp->type);
+#endif
 
     if (ngx_memcmp(ajp_cpong_packet, p, sizeof(ajp_cpong_packet)) == 0) {
         return NGX_OK;
@@ -1273,7 +1293,6 @@ static void
 ngx_http_check_send_handler(ngx_event_t *event) 
 {
     ssize_t                         size;
-    ngx_err_t                       err;
     ngx_connection_t               *c;
     ngx_http_check_ctx             *ctx;
     ngx_http_check_peer_t          *peer;
@@ -1328,10 +1347,13 @@ ngx_http_check_send_handler(ngx_event_t *event)
     while (ctx->send.pos < ctx->send.last) {
 
         size = c->send(c, ctx->send.pos, ctx->send.last - ctx->send.pos);
-        err = (size >=0) ? 0 : ngx_socket_errno;
 
+#if (NGX_DEBUG)
+        ngx_err_t                       err;
+        err = (size >=0) ? 0 : ngx_socket_errno;
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, err, 
                 "http check send size: %d, total: %d", size, ctx->send.last - ctx->send.pos);
+#endif
 
         if (size >= 0) {
             ctx->send.pos += size;
@@ -1364,7 +1386,6 @@ ngx_http_check_recv_handler(ngx_event_t *event)
 {
     u_char                         *new_buf;
     ssize_t                         size, n, rc;
-    ngx_err_t                       err;
     ngx_connection_t               *c;
     ngx_http_check_ctx             *ctx;
     ngx_http_check_peer_t          *peer;
@@ -1418,10 +1439,13 @@ ngx_http_check_recv_handler(ngx_event_t *event)
         }
 
         size = c->recv(c, ctx->recv.last, n);
-        err = (size >= 0) ? 0 : ngx_socket_errno;
 
+#if (NGX_DEBUG)
+        ngx_err_t                       err;
+        err = (size >= 0) ? 0 : ngx_socket_errno;
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, err, 
                 "http check recv size: %d, peer: %V", size, &peer->peer_addr->name);
+#endif
 
         if (size > 0) {
             ctx->recv.last += size;
