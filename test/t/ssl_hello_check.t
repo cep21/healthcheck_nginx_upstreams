@@ -48,3 +48,23 @@ __DATA__
 --- request
 GET /
 --- response_body_like: ^(.*)$
+
+=== TEST 2: the ssl_hello_check test with ip_hash
+--- config
+    upstream test{
+        server www.battlenet.com.cn:443;
+        ip_hash;
+
+        check interval=4000 rise=1 fall=5 timeout=2000 type=ssl_hello;
+    }
+
+    server {
+        listen 1982;
+
+        location / {
+            proxy_pass https://test;
+        }
+    }
+--- request
+GET /
+--- response_body_like: ^(.*)$

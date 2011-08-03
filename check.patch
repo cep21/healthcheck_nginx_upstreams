@@ -1,3 +1,40 @@
+diff --git a/src/http/modules/ngx_http_upstream_ip_hash_module.c b/src/http/modules/ngx_http_upstream_ip_hash_module.c
+index dffbf22..a80cf12 100644
+--- a/src/http/modules/ngx_http_upstream_ip_hash_module.c
++++ b/src/http/modules/ngx_http_upstream_ip_hash_module.c
+@@ -8,6 +8,10 @@
+ #include <ngx_core.h>
+ #include <ngx_http.h>
+ 
++#if (NGX_UPSTREAM_CHECK_MODULE)
++#include "ngx_http_upstream_check_handler.h"
++#endif
++
+ 
+ typedef struct {
+     /* the round robin data must be first */
+@@ -181,6 +185,11 @@ ngx_http_upstream_get_ip_hash_peer(ngx_peer_connection_t *pc, void *data)
+ 
+             if (!peer->down) {
+ 
++#if (NGX_UPSTREAM_CHECK_MODULE)
++                ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
++                        "get ip_hash peer, check_index: %ui", peer->check_index);
++                if (!ngx_http_check_peer_down(peer->check_index)) {
++#endif
+                 if (peer->max_fails == 0 || peer->fails < peer->max_fails) {
+                     break;
+                 }
+@@ -189,6 +198,9 @@ ngx_http_upstream_get_ip_hash_peer(ngx_peer_connection_t *pc, void *data)
+                     peer->fails = 0;
+                     break;
+                 }
++#if (NGX_UPSTREAM_CHECK_MODULE)
++                }
++#endif
+             }
+ 
+             iphp->rrp.tried[n] |= m;
 diff --git a/src/http/ngx_http_upstream_round_robin.c b/src/http/ngx_http_upstream_round_robin.c
 index 52bd808..7e8af68 100644
 --- a/src/http/ngx_http_upstream_round_robin.c

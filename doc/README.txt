@@ -164,9 +164,9 @@ Installation
     example, the version 0.7.67 (see nginx compatibility), and then build
     the source with this module:
 
-        $ wget 'http://nginx.org/download/nginx-0.7.67.tar.gz'
-        $ tar -xzvf nginx-0.7.67.tar.gz
-        $ cd nginx-0.7.67/
+        $ wget 'http://nginx.org/download/nginx-1.0.5.tar.gz'
+        $ tar -xzvf nginx-1.0.5.tar.gz
+        $ cd nginx-1.0.5/
         $ patch -p1 < /path/to/nginx_http_upstream_check_module/check.patch
 
         $ ./configure --add-module=/path/to/nginx_http_upstream_check_module
@@ -174,12 +174,23 @@ Installation
         $ make
         $ make install
 
-    The patch just adds the support for Round-Robin upstream module. But
-    it's easy to expand my module to other upstream modules. See the patch
-    for detail.
+    The patch just adds the support for Round-Robin and Ip_hash upstream
+    module. But it's easy to expand my module to other upstream modules. See
+    the patch for detail.
+
+    If you want to add the support for upstream fair module, you can do it
+    like this:
+
+        $ git clone git://github.com/gnosek/nginx-upstream-fair.git
+        $ cd nginx-upstream-fair
+        $ patch -p2 < /path/to/nginx_http_upstream_check_module/upstream_fair.patch
+        $ cd /path/to/nginx-1.0.5
+        $ ./configure --add-module=/path/to/nginx_http_upstream_check_module --add-module=/path/to/nginx-upstream-fair-module
+        $ make
+        $ make install
 
 Compatibility
-    *   My test bed is 0.7.67 and 0.8.49.
+    *   My test bed is 0.7.67 and 0.8.49+.
 
 Notes
     The http_response_parse.rl and smtp_response_parse.rl are ragel
