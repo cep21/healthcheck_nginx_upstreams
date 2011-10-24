@@ -32,7 +32,7 @@ __DATA__
 === TEST 1: the ssl_hello_check test
 --- config
     upstream test{
-        server www.battlenet.com.cn:443;
+        server www.paypal.com:443;
 
         #ip_hash;
         check interval=4000 rise=1 fall=5 timeout=2000 type=ssl_hello;
@@ -52,7 +52,7 @@ GET /
 === TEST 2: the ssl_hello_check test with ip_hash
 --- config
     upstream test{
-        server www.battlenet.com.cn:443;
+        server www.paypal.com:443;
         ip_hash;
 
         check interval=4000 rise=1 fall=5 timeout=2000 type=ssl_hello;

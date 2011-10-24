@@ -712,12 +712,12 @@ ngx_http_check_http_parse(ngx_http_check_peer_t *peer)
 
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
                 "http_parse: hp->status_code_n: %d, conf: %d",
-                hp->status_code_n, ucscf->status_alive);
+                hp->status_code_n, ucscf->code.status_alive);
 
         if (hp->status_code_n == 0) {
             return NGX_AGAIN;
         }
-        else if (hp->status_code_n & ucscf->status_alive) {
+        else if (hp->status_code_n & ucscf->code.status_alive) {
             return NGX_OK;
         }
         else {
@@ -992,12 +992,12 @@ ngx_http_check_smtp_parse(ngx_http_check_peer_t *peer)
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
             "smtp_parse: sp->hello_reply_code: %d, conf: %d",
-            sp->hello_reply_code, ucscf->status_alive);
+            sp->hello_reply_code, ucscf->code.status_alive);
 
     if (sp->hello_reply_code == 0) {
         return NGX_AGAIN;
     }
-    else if (sp->hello_reply_code & ucscf->status_alive) {
+    else if (sp->hello_reply_code & ucscf->code.status_alive) {
         return NGX_OK;
     }
     else {

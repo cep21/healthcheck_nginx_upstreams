@@ -85,7 +85,7 @@ typedef struct {
     union {
         ngx_uint_t                   return_code;
         ngx_uint_t                   status_alive;
-    };
+    } code;
 
     ngx_uint_t                       default_down;
 }ngx_http_upstream_check_srv_conf_t;

@@ -359,7 +359,7 @@ ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
     mask = ngx_check_http_expect_alive_masks; 
 
     ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
-    bit = ucscf->status_alive;
+    bit = ucscf->code.status_alive;
 
     for (i = 1; i < cf->args->nelts; i++) {
         for (m = 0; mask[m].name.len != 0; m++) {
@@ -389,7 +389,7 @@ ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
         }
     }
 
-    ucscf->status_alive = bit;
+    ucscf->code.status_alive = bit;
 
     return NGX_CONF_OK;
 }
@@ -407,7 +407,7 @@ ngx_http_upstream_check_smtp_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
     mask = ngx_check_smtp_expect_alive_masks; 
 
     ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
-    bit = ucscf->status_alive;
+    bit = ucscf->code.status_alive;
 
     for (i = 1; i < cf->args->nelts; i++) {
         for (m = 0; mask[m].name.len != 0; m++) {
@@ -437,7 +437,7 @@ ngx_http_upstream_check_smtp_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
         }
     }
 
-    ucscf->status_alive = bit;
+    ucscf->code.status_alive = bit;
 
     return NGX_CONF_OK;
 }
@@ -585,8 +585,8 @@ ngx_http_upstream_check_init_srv_conf(ngx_conf_t *cf, void *conf)
             ucscf->send.len = check->default_send.len;
         }
 
-        if (ucscf->status_alive == 0) { 
-            ucscf->status_alive = check->default_status_alive;
+        if (ucscf->code.status_alive == 0) { 
+            ucscf->code.status_alive = check->default_status_alive;
         }
     }
 
