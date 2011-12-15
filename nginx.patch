@@ -1,8 +1,7 @@
-diff --git a/src/http/ngx_http_upstream.c b/src/http/ngx_http_upstream.c
-index dc2d0c0..11c8eed 100644
---- a/src/http/ngx_http_upstream.c
-+++ b/src/http/ngx_http_upstream.c
-@@ -4267,6 +4267,17 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
+diff -ru nginx-1.0.10/src/http/ngx_http_upstream.c nginx-1.0.10-patched/src/http/ngx_http_upstream.c
+--- nginx-1.0.10/src/http/ngx_http_upstream.c	2011-11-01 10:18:10.000000000 -0400
++++ nginx-1.0.10-patched/src/http/ngx_http_upstream.c	2011-11-30 20:34:10.000000000 -0500
+@@ -4293,6 +4293,17 @@
      uscf->line = cf->conf_file->line;
      uscf->port = u->port;
      uscf->default_port = u->default_port;
@@ -20,11 +19,11 @@ index dc2d0c0..11c8eed 100644
  
      if (u->naddrs == 1) {
          uscf->servers = ngx_array_create(cf->pool, 1,
-diff --git a/src/http/ngx_http_upstream.h b/src/http/ngx_http_upstream.h
-index 01e2e1e..72a16ca 100644
---- a/src/http/ngx_http_upstream.h
-+++ b/src/http/ngx_http_upstream.h
-@@ -106,6 +106,24 @@ struct ngx_http_upstream_srv_conf_s {
+Only in nginx-1.0.10-patched/src/http: ngx_http_upstream.c.orig
+diff -ru nginx-1.0.10/src/http/ngx_http_upstream.h nginx-1.0.10-patched/src/http/ngx_http_upstream.h
+--- nginx-1.0.10/src/http/ngx_http_upstream.h	2011-11-01 10:18:10.000000000 -0400
++++ nginx-1.0.10-patched/src/http/ngx_http_upstream.h	2011-11-30 20:34:10.000000000 -0500
+@@ -109,6 +109,24 @@
  
      ngx_array_t                     *servers;  /* ngx_http_upstream_server_t */
  
@@ -49,10 +48,10 @@ index 01e2e1e..72a16ca 100644
      ngx_uint_t                       flags;
      ngx_str_t                        host;
      u_char                          *file_name;
-diff --git a/src/http/ngx_http_upstream_round_robin.c b/src/http/ngx_http_upstream_round_robin.c
-index 52bd808..a143fe6 100644
---- a/src/http/ngx_http_upstream_round_robin.c
-+++ b/src/http/ngx_http_upstream_round_robin.c
+Only in nginx-1.0.10-patched/src/http: ngx_http_upstream.h.orig
+diff -ru nginx-1.0.10/src/http/ngx_http_upstream_round_robin.c nginx-1.0.10-patched/src/http/ngx_http_upstream_round_robin.c
+--- nginx-1.0.10/src/http/ngx_http_upstream_round_robin.c	2011-09-30 10:30:01.000000000 -0400
++++ nginx-1.0.10-patched/src/http/ngx_http_upstream_round_robin.c	2011-11-30 20:34:10.000000000 -0500
 @@ -4,6 +4,8 @@
   */
  
@@ -70,9 +69,9 @@ index 52bd808..a143fe6 100644
 +ngx_http_upstream_get_peer(ngx_http_upstream_rr_peers_t *peers,
 +    ngx_log_t * log);
  
+ #if (NGX_HTTP_SSL)
  
- ngx_int_t
-@@ -23,6 +26,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
+@@ -32,6 +35,7 @@
      ngx_uint_t                     i, j, n;
      ngx_http_upstream_server_t    *server;
      ngx_http_upstream_rr_peers_t  *peers, *backup;
@@ -80,7 +79,7 @@ index 52bd808..a143fe6 100644
  
      us->peer.init = ngx_http_upstream_init_round_robin_peer;
  
-@@ -57,6 +61,14 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
+@@ -66,6 +70,14 @@
                      continue;
                  }
  
@@ -95,7 +94,7 @@ index 52bd808..a143fe6 100644
                  peers->peer[n].sockaddr = server[i].addrs[j].sockaddr;
                  peers->peer[n].socklen = server[i].addrs[j].socklen;
                  peers->peer[n].name = server[i].addrs[j].name;
-@@ -365,6 +377,7 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -377,6 +389,7 @@
      ngx_connection_t              *c;
      ngx_http_upstream_rr_peer_t   *peer;
      ngx_http_upstream_rr_peers_t  *peers;
@@ -103,7 +102,7 @@ index 52bd808..a143fe6 100644
  
      ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
                     "get rr peer, try: %ui", pc->tries);
-@@ -410,7 +423,7 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -422,7 +435,7 @@
              i = pc->tries;
  
              for ( ;; ) {
@@ -112,7 +111,7 @@ index 52bd808..a143fe6 100644
  
                  ngx_log_debug2(NGX_LOG_DEBUG_HTTP, pc->log, 0,
                                 "get rr peer, current: %ui %i",
-@@ -471,7 +484,11 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -483,7 +496,11 @@
  
                      peer = &rrp->peers->peer[rrp->current];
  
@@ -125,7 +124,7 @@ index 52bd808..a143fe6 100644
  
                          if (peer->max_fails == 0
                              || peer->fails < peer->max_fails)
-@@ -576,12 +593,14 @@ failed:
+@@ -588,12 +605,14 @@
  
  
  static ngx_uint_t
@@ -141,7 +140,7 @@ index 52bd808..a143fe6 100644
  
      for ( ;; ) {
  
-@@ -601,6 +620,11 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peers_t *peers)
+@@ -613,6 +632,11 @@
                      continue;
                  }
  
@@ -153,8 +152,8 @@ index 52bd808..a143fe6 100644
                  if (peer[n].current_weight * 1000 / peer[i].current_weight
                      > peer[n].weight * 1000 / peer[i].weight)
                  {
-@@ -617,6 +641,9 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peers_t *peers)
-             return n;
+@@ -633,6 +657,9 @@
+             return 0;
          }
  
 +        if (health_check_rounds)
@@ -163,11 +162,11 @@ index 52bd808..a143fe6 100644
          for (i = 0; i < peers->number; i++) {
              peer[i].current_weight = peer[i].weight;
          }
-diff --git a/src/http/ngx_http_upstream_round_robin.h b/src/http/ngx_http_upstream_round_robin.h
-index a9cb257..aee17b5 100644
---- a/src/http/ngx_http_upstream_round_robin.h
-+++ b/src/http/ngx_http_upstream_round_robin.h
-@@ -26,6 +26,7 @@ typedef struct {
+Only in nginx-1.0.10-patched/src/http: ngx_http_upstream_round_robin.c.orig
+diff -ru nginx-1.0.10/src/http/ngx_http_upstream_round_robin.h nginx-1.0.10-patched/src/http/ngx_http_upstream_round_robin.h
+--- nginx-1.0.10/src/http/ngx_http_upstream_round_robin.h	2009-11-02 07:41:56.000000000 -0500
++++ nginx-1.0.10-patched/src/http/ngx_http_upstream_round_robin.h	2011-11-30 20:34:10.000000000 -0500
+@@ -26,6 +26,7 @@
  
      ngx_uint_t                      max_fails;
      time_t                          fail_timeout;
