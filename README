@@ -30,7 +30,17 @@ Synopsis
         server {
             listen 80;
 
-            proxy_pass http://cluster;
+                    location / {
+                            proxy_pass http://cluster;
+                    }
+
+                    location /status {
+                            check_status;
+
+                            access_log   off;
+                            allow SOME.IP.ADD.RESS;
+                            deny all;
+                    }
         }
 
     }
