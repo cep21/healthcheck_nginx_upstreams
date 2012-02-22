@@ -248,3 +248,29 @@ GET /
 --- request
 GET /
 --- response_body_like: ^<(.*)>$
+
+=== TEST 11: the http_check which does not use the upstream, with variable
+--- config
+    upstream test{
+        server blog.163.com:80;
+        server blog.163.com:81;
+        ip_hash;
+
+        check interval=3000 rise=4 fall=5 timeout=2000 type=http;
+        check_http_send "GET / HTTP/1.0\r\n\r\n";
+        check_http_expect_alive http_2xx http_3xx;
+    }
+
+    resolver 8.8.8.8;
+
+    server {
+        listen 1982;
+
+        location / {
+            set $test "/";
+            proxy_pass http://blog.163.com$test;
+        }
+    }
+--- request
+GET /
+--- response_body_like: ^<(.*)>$

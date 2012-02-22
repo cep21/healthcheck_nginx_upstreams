@@ -1,8 +1,8 @@
 diff --git a/src/http/modules/ngx_http_upstream_ip_hash_module.c b/src/http/modules/ngx_http_upstream_ip_hash_module.c
-index dffbf22..a80cf12 100644
+index fd9ecbe..5277cdf 100644
 --- a/src/http/modules/ngx_http_upstream_ip_hash_module.c
 +++ b/src/http/modules/ngx_http_upstream_ip_hash_module.c
-@@ -8,6 +8,10 @@
+@@ -9,6 +9,10 @@
  #include <ngx_core.h>
  #include <ngx_http.h>
  
@@ -13,7 +13,7 @@ index dffbf22..a80cf12 100644
  
  typedef struct {
      /* the round robin data must be first */
-@@ -181,6 +185,11 @@ ngx_http_upstream_get_ip_hash_peer(ngx_peer_connection_t *pc, void *data)
+@@ -182,6 +186,11 @@ ngx_http_upstream_get_ip_hash_peer(ngx_peer_connection_t *pc, void *data)
  
              if (!peer->down) {
  
@@ -25,7 +25,7 @@ index dffbf22..a80cf12 100644
                  if (peer->max_fails == 0 || peer->fails < peer->max_fails) {
                      break;
                  }
-@@ -189,6 +198,9 @@ ngx_http_upstream_get_ip_hash_peer(ngx_peer_connection_t *pc, void *data)
+@@ -190,6 +199,9 @@ ngx_http_upstream_get_ip_hash_peer(ngx_peer_connection_t *pc, void *data)
                      peer->fails = 0;
                      break;
                  }
@@ -36,10 +36,10 @@ index dffbf22..a80cf12 100644
  
              iphp->rrp.tried[n] |= m;
 diff --git a/src/http/ngx_http_upstream_round_robin.c b/src/http/ngx_http_upstream_round_robin.c
-index 52bd808..7e8af68 100644
+index afc9b2e..5bb7eb0 100644
 --- a/src/http/ngx_http_upstream_round_robin.c
 +++ b/src/http/ngx_http_upstream_round_robin.c
-@@ -8,6 +8,9 @@
+@@ -9,6 +9,9 @@
  #include <ngx_core.h>
  #include <ngx_http.h>
  
@@ -49,7 +49,7 @@ index 52bd808..7e8af68 100644
  
  static ngx_int_t ngx_http_upstream_cmp_servers(const void *one,
      const void *two);
-@@ -65,6 +68,17 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
+@@ -75,6 +78,17 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                  peers->peer[n].down = server[i].down;
                  peers->peer[n].weight = server[i].down ? 0 : server[i].weight;
                  peers->peer[n].current_weight = peers->peer[n].weight;
@@ -67,7 +67,7 @@ index 52bd808..7e8af68 100644
                  n++;
              }
          }
-@@ -118,6 +132,17 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
+@@ -128,6 +142,17 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
                  backup->peer[n].max_fails = server[i].max_fails;
                  backup->peer[n].fail_timeout = server[i].fail_timeout;
                  backup->peer[n].down = server[i].down;
@@ -85,7 +85,7 @@ index 52bd808..7e8af68 100644
                  n++;
              }
          }
-@@ -176,6 +201,9 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
+@@ -186,6 +211,9 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
          peers->peer[i].current_weight = 1;
          peers->peer[i].max_fails = 1;
          peers->peer[i].fail_timeout = 10;
@@ -95,7 +95,27 @@ index 52bd808..7e8af68 100644
      }
  
      us->peer.data = peers;
-@@ -398,7 +426,11 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -302,6 +330,9 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
+         peers->peer[0].current_weight = 1;
+         peers->peer[0].max_fails = 1;
+         peers->peer[0].fail_timeout = 10;
++#if (NGX_UPSTREAM_CHECK_MODULE)
++        peers->peer[0].check_index = (ngx_uint_t) NGX_ERROR;
++#endif
+ 
+     } else {
+ 
+@@ -334,6 +365,9 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
+             peers->peer[i].current_weight = 1;
+             peers->peer[i].max_fails = 1;
+             peers->peer[i].fail_timeout = 10;
++#if (NGX_UPSTREAM_CHECK_MODULE)
++            peers->peer[i].check_index = (ngx_uint_t) NGX_ERROR;
++#endif
+         }
+     }
+ 
+@@ -411,7 +445,11 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
  
      if (rrp->peers->single) {
          peer = &rrp->peers->peer[0];
@@ -108,7 +128,7 @@ index 52bd808..7e8af68 100644
      } else {
  
          /* there are several peers */
-@@ -425,6 +457,11 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -438,6 +476,11 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
  
                      if (!peer->down) {
  
@@ -120,7 +140,7 @@ index 52bd808..7e8af68 100644
                          if (peer->max_fails == 0
                              || peer->fails < peer->max_fails)
                          {
-@@ -435,6 +472,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -448,6 +491,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
                              peer->fails = 0;
                              break;
                          }
@@ -130,7 +150,7 @@ index 52bd808..7e8af68 100644
  
                          peer->current_weight = 0;
  
-@@ -473,6 +513,11 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -486,6 +532,11 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
  
                      if (!peer->down) {
  
@@ -142,7 +162,7 @@ index 52bd808..7e8af68 100644
                          if (peer->max_fails == 0
                              || peer->fails < peer->max_fails)
                          {
-@@ -483,6 +528,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
+@@ -496,6 +547,9 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
                              peer->fails = 0;
                              break;
                          }
@@ -153,10 +173,10 @@ index 52bd808..7e8af68 100644
                          peer->current_weight = 0;
  
 diff --git a/src/http/ngx_http_upstream_round_robin.h b/src/http/ngx_http_upstream_round_robin.h
-index a9cb257..ac8fc5a 100644
+index 6d285ab..354cca2 100644
 --- a/src/http/ngx_http_upstream_round_robin.h
 +++ b/src/http/ngx_http_upstream_round_robin.h
-@@ -27,6 +27,10 @@ typedef struct {
+@@ -28,6 +28,10 @@ typedef struct {
      ngx_uint_t                      max_fails;
      time_t                          fail_timeout;
  
