@@ -7,16 +7,16 @@
 #include "ngx_http_upstream_check_handler.h"
 
 
-static char *ngx_http_upstream_check(ngx_conf_t *cf, 
+static char *ngx_http_upstream_check(ngx_conf_t *cf,
         ngx_command_t *cmd, void *conf);
-static char * ngx_http_upstream_check_http_send(ngx_conf_t *cf, 
+static char * ngx_http_upstream_check_http_send(ngx_conf_t *cf,
         ngx_command_t *cmd, void *conf);
-static char * ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, 
-        ngx_command_t *cmd, void *conf); 
+static char * ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf,
+        ngx_command_t *cmd, void *conf);
 
-static char * ngx_http_upstream_check_shm_size(ngx_conf_t *cf, 
+static char * ngx_http_upstream_check_shm_size(ngx_conf_t *cf,
         ngx_command_t *cmd, void *conf);
-static char * ngx_http_upstream_check_status_set_status(ngx_conf_t *cf, 
+static char * ngx_http_upstream_check_status_set_status(ngx_conf_t *cf,
         ngx_command_t *cmd, void *conf);
 
 static void *ngx_http_upstream_check_create_main_conf(ngx_conf_t *cf);
@@ -117,7 +117,7 @@ ngx_http_get_check_type_conf(ngx_str_t *str)
             break;
         }
 
-        if (ngx_strncmp(str->data, 
+        if (ngx_strncmp(str->data,
                     (u_char *)ngx_check_types[i].name, str->len) == 0) {
             return &ngx_check_types[i];
         }
@@ -134,7 +134,7 @@ ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us,
     ngx_http_check_peer_t                *peer;
     ngx_http_check_peers_t               *peers;
     ngx_http_upstream_check_srv_conf_t   *ucscf;
-    ngx_http_upstream_check_main_conf_t  *ucmcf; 
+    ngx_http_upstream_check_main_conf_t  *ucmcf;
 
     if (us->srv_conf == NULL) {
         return NGX_ERROR;
@@ -163,7 +163,7 @@ ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us,
 
 
 static char *
-ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
+ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_str_t                           *value, s;
     ngx_uint_t                           i, rise, fall, default_down;
@@ -179,7 +179,7 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    ucscf = ngx_http_conf_get_module_srv_conf(cf, 
+    ucscf = ngx_http_conf_get_module_srv_conf(cf,
             ngx_http_upstream_check_module);
     if (ucscf == NULL) {
         return NGX_CONF_ERROR;
@@ -295,7 +295,7 @@ invalid_check_parameter:
 
 
 static char *
-ngx_http_upstream_check_http_send(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
+ngx_http_upstream_check_http_send(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_str_t                           *value;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
@@ -311,7 +311,7 @@ ngx_http_upstream_check_http_send(ngx_conf_t *cf, ngx_command_t *cmd, void *conf
 
 
 static char *
-ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
+ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_str_t                           *value;
     ngx_uint_t                           bit, i, m;
@@ -319,7 +319,7 @@ ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
     ngx_http_upstream_check_srv_conf_t  *ucscf;
 
     value = cf->args->elts;
-    mask = ngx_check_http_expect_alive_masks; 
+    mask = ngx_check_http_expect_alive_masks;
 
     ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
     bit = ucscf->code.status_alive;
@@ -359,12 +359,12 @@ ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
 
 
 static char *
-ngx_http_upstream_check_shm_size(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
+ngx_http_upstream_check_shm_size(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_str_t                            *value;
-    ngx_http_upstream_check_main_conf_t  *ucmcf; 
+    ngx_http_upstream_check_main_conf_t  *ucmcf;
 
-    ucmcf = ngx_http_conf_get_module_main_conf(cf, 
+    ucmcf = ngx_http_conf_get_module_main_conf(cf,
             ngx_http_upstream_check_module);
 
     if (ucmcf->check_shm_size) {
@@ -383,8 +383,8 @@ ngx_http_upstream_check_shm_size(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
 static char *
-ngx_http_upstream_check_status_set_status(ngx_conf_t *cf, 
-        ngx_command_t *cmd, void *conf) 
+ngx_http_upstream_check_status_set_status(ngx_conf_t *cf,
+        ngx_command_t *cmd, void *conf)
 {
     ngx_http_core_loc_conf_t                *clcf;
 
@@ -421,7 +421,7 @@ ngx_http_upstream_check_create_main_conf(ngx_conf_t *cf)
 }
 
 
-static char * 
+static char *
 ngx_http_upstream_check_init_main_conf(ngx_conf_t *cf, void *conf)
 {
     ngx_uint_t                            i;
@@ -501,7 +501,7 @@ ngx_http_upstream_check_init_srv_conf(ngx_conf_t *cf, void *conf)
             ucscf->send.len = check->default_send.len;
         }
 
-        if (ucscf->code.status_alive == 0) { 
+        if (ucscf->code.status_alive == 0) {
             ucscf->code.status_alive = check->default_status_alive;
         }
     }
@@ -510,8 +510,8 @@ ngx_http_upstream_check_init_srv_conf(ngx_conf_t *cf, void *conf)
 }
 
 
-static ngx_int_t 
-ngx_http_check_init_process(ngx_cycle_t *cycle) 
+static ngx_int_t
+ngx_http_check_init_process(ngx_cycle_t *cycle)
 {
-    return ngx_http_check_add_timers(cycle); 
+    return ngx_http_check_add_timers(cycle);
 }

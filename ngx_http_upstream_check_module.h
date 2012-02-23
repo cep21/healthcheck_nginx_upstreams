@@ -16,12 +16,12 @@ typedef struct check_conf_s check_conf_t;
 
 /* make nginx-0.8.22+ happy */
 #if defined(nginx_version) && nginx_version >= 8022
-typedef ngx_addr_t ngx_peer_addr_t; 
+typedef ngx_addr_t ngx_peer_addr_t;
 #endif
 
-typedef ngx_int_t (*ngx_http_check_packet_init_pt)(ngx_http_check_peer_t *peer); 
-typedef ngx_int_t (*ngx_http_check_packet_parse_pt)(ngx_http_check_peer_t *peer); 
-typedef void (*ngx_http_check_packet_clean_pt)(ngx_http_check_peer_t *peer); 
+typedef ngx_int_t (*ngx_http_check_packet_init_pt)(ngx_http_check_peer_t *peer);
+typedef ngx_int_t (*ngx_http_check_packet_parse_pt)(ngx_http_check_peer_t *peer);
+typedef void (*ngx_http_check_packet_clean_pt)(ngx_http_check_peer_t *peer);
 
 #define NGX_HTTP_CHECK_TCP              0x0001
 #define NGX_HTTP_CHECK_HTTP             0x0002
@@ -53,7 +53,7 @@ struct check_conf_s {
     char                             *name;
 
     ngx_str_t                         default_send;
-    
+
     /* HTTP */
     ngx_uint_t                        default_status_alive;
 
@@ -90,7 +90,7 @@ typedef struct {
 } ngx_http_upstream_check_srv_conf_t;
 
 
-ngx_uint_t ngx_http_check_add_peer(ngx_conf_t *cf, 
+ngx_uint_t ngx_http_check_add_peer(ngx_conf_t *cf,
         ngx_http_upstream_srv_conf_t *us, ngx_peer_addr_t *peer);
 
 check_conf_t *ngx_http_get_check_type_conf(ngx_str_t *str);

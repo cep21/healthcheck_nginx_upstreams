@@ -9,7 +9,7 @@
 #define ngx_spinlock_unlock(lock)                          \
     (void) ngx_atomic_cmp_set(lock, ngx_pid, 0)
 
-static ngx_int_t ngx_http_check_get_shm_name(ngx_str_t *shm_name, 
+static ngx_int_t ngx_http_check_get_shm_name(ngx_str_t *shm_name,
         ngx_pool_t *pool);
 static ngx_int_t ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone,
         void *data);
@@ -85,8 +85,8 @@ const char sslv3_client_hello_pkt[] = {
 #define AJP_CPING  0x0a
 #define AJP_CPONG  0x09
 
-const char ajp_cping_packet[] ={0x12, 0x34, 0x00, 0x01, AJP_CPING, 0x00}; 
-const char ajp_cpong_packet[] ={0x41, 0x42, 0x00, 0x01, AJP_CPONG}; 
+const char ajp_cping_packet[] ={0x12, 0x34, 0x00, 0x01, AJP_CPING, 0x00};
+const char ajp_cpong_packet[] ={0x41, 0x42, 0x00, 0x01, AJP_CPONG};
 
 check_conf_t  ngx_check_types[] = {
     { NGX_HTTP_CHECK_TCP,
@@ -174,7 +174,7 @@ static ngx_uint_t ngx_http_check_shm_generation = 0;
 static ngx_http_check_peers_t *check_peers_ctx = NULL;
 
 
-ngx_uint_t 
+ngx_uint_t
 ngx_http_check_peer_down(ngx_uint_t index)
 {
     ngx_http_check_peer_t     *peer;
@@ -189,8 +189,8 @@ ngx_http_check_peer_down(ngx_uint_t index)
 }
 
 
-void 
-ngx_http_check_get_peer(ngx_uint_t index) 
+void
+ngx_http_check_get_peer(ngx_uint_t index)
 {
     ngx_http_check_peer_t     *peer;
 
@@ -209,8 +209,8 @@ ngx_http_check_get_peer(ngx_uint_t index)
 }
 
 
-void 
-ngx_http_check_free_peer(ngx_uint_t index) 
+void
+ngx_http_check_free_peer(ngx_uint_t index)
 {
     ngx_http_check_peer_t     *peer;
 
@@ -233,7 +233,7 @@ ngx_http_check_free_peer(ngx_uint_t index)
 #define SHM_NAME_LEN 256
 
 static ngx_int_t
-ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data) 
+ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 {
     ngx_uint_t                           i;
     ngx_slab_pool_t                     *shpool;
@@ -291,8 +291,8 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 }
 
 
-static ngx_int_t 
-ngx_http_check_get_shm_name(ngx_str_t *shm_name, ngx_pool_t *pool) 
+static ngx_int_t
+ngx_http_check_get_shm_name(ngx_str_t *shm_name, ngx_pool_t *pool)
 {
     u_char    *last;
 
@@ -301,7 +301,7 @@ ngx_http_check_get_shm_name(ngx_str_t *shm_name, ngx_pool_t *pool)
         return NGX_ERROR;
     }
 
-    last = ngx_snprintf(shm_name->data, SHM_NAME_LEN, "%s#%ui", 
+    last = ngx_snprintf(shm_name->data, SHM_NAME_LEN, "%s#%ui",
             "ngx_http_upstream_check", ngx_http_check_shm_generation);
 
     shm_name->len = last - shm_name->data;
@@ -352,15 +352,15 @@ ngx_shared_memory_find(ngx_cycle_t *cycle, ngx_str_t *name, void *tag)
 }
 
 
-static void 
-ngx_http_check_clean_event(ngx_http_check_peer_t *peer) 
+static void
+ngx_http_check_clean_event(ngx_http_check_peer_t *peer)
 {
     ngx_connection_t             *c;
 
     c = peer->pc.connection;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, 
-                   "http check clean event: index:%d, fd: %d", 
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
+                   "http check clean event: index:%d, fd: %d",
                    peer->index, c->fd);
 
     ngx_close_connection(c);
@@ -385,7 +385,7 @@ ngx_http_check_clean_event(ngx_http_check_peer_t *peer)
 
 static ngx_flag_t has_cleared = 0;
 
-static void 
+static void
 ngx_http_check_clear_all_events()
 {
     ngx_uint_t                      i;
@@ -423,8 +423,8 @@ ngx_http_check_clear_all_events()
 }
 
 
-static ngx_int_t 
-ngx_http_check_need_exit() 
+static ngx_int_t
+ngx_http_check_need_exit()
 {
     if (ngx_terminate || ngx_exiting || ngx_quit) {
         ngx_http_check_clear_all_events();
@@ -435,8 +435,8 @@ ngx_http_check_need_exit()
 }
 
 
-static void 
-ngx_http_check_finish_handler(ngx_event_t *event) 
+static void
+ngx_http_check_finish_handler(ngx_event_t *event)
 {
     if (ngx_http_check_need_exit()) {
         return;
@@ -444,34 +444,34 @@ ngx_http_check_finish_handler(ngx_event_t *event)
 }
 
 
-static void 
-ngx_http_check_status_update(ngx_http_check_peer_t *peer, ngx_int_t result) 
+static void
+ngx_http_check_status_update(ngx_http_check_peer_t *peer, ngx_int_t result)
 {
     ngx_http_upstream_check_srv_conf_t   *ucscf;
 
     ucscf = peer->conf;
 
     if (result) {
-        peer->shm->rise_count++; 
-        peer->shm->fall_count = 0; 
+        peer->shm->rise_count++;
+        peer->shm->fall_count = 0;
         if (peer->shm->down && peer->shm->rise_count >= ucscf->rise_count) {
-            peer->shm->down = 0; 
-        } 
+            peer->shm->down = 0;
+        }
     }
     else {
-        peer->shm->rise_count = 0; 
-        peer->shm->fall_count++; 
+        peer->shm->rise_count = 0;
+        peer->shm->fall_count++;
         if (!peer->shm->down && peer->shm->fall_count >= ucscf->fall_count) {
-            peer->shm->down = 1; 
+            peer->shm->down = 1;
         }
     }
 
-    peer->shm->access_time = ngx_current_msec; 
+    peer->shm->access_time = ngx_current_msec;
 }
 
 
-static void 
-ngx_http_check_timeout_handler(ngx_event_t *event) 
+static void
+ngx_http_check_timeout_handler(ngx_event_t *event)
 {
     ngx_http_check_peer_t          *peer;
 
@@ -489,7 +489,7 @@ ngx_http_check_timeout_handler(ngx_event_t *event)
 }
 
 
-static void 
+static void
 ngx_http_check_peek_handler(ngx_event_t *event)
 {
     char                           buf[1];
@@ -509,7 +509,7 @@ ngx_http_check_peek_handler(ngx_event_t *event)
 
     err = ngx_socket_errno;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, err, 
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, err,
                    "http check upstream recv(): %d, fd: %d",
                    n, c->fd);
 
@@ -528,8 +528,8 @@ ngx_http_check_peek_handler(ngx_event_t *event)
 }
 
 
-void 
-http_field(void *data, const char *field, 
+void
+http_field(void *data, const char *field,
         size_t flen, const char *value, size_t vlen)
 {
 #if (NGX_DEBUG)
@@ -541,13 +541,13 @@ http_field(void *data, const char *field,
     str_value.data = (u_char *) value;
     str_value.len = vlen;
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "%V: %V", &str_field, &str_value);
 #endif
 }
 
 
-void 
+void
 http_version(void *data, const char *at, size_t length)
 {
 #if (NGX_DEBUG)
@@ -556,13 +556,13 @@ http_version(void *data, const char *at, size_t length)
     str.data = (u_char *) at;
     str.len = length;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "VERSION: \"%V\"", &str);
 #endif
 }
 
 
-void 
+void
 status_code(void *data, const char *at, size_t length)
 {
     ngx_http_check_peer_t *peer = data;
@@ -575,7 +575,7 @@ status_code(void *data, const char *at, size_t length)
     str.data = (u_char *) at;
     str.len = length;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "STATUS_CODE: \"%V\"", &str);
 #endif
 
@@ -602,7 +602,7 @@ status_code(void *data, const char *at, size_t length)
 }
 
 
-void 
+void
 reason_phrase(void *data, const char *at, size_t length)
 {
 #if (NGX_DEBUG)
@@ -611,21 +611,21 @@ reason_phrase(void *data, const char *at, size_t length)
     str.data = (u_char *) at;
     str.len = length;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "REASON_PHRASE: \"%V\"", &str);
 #endif
 }
 
 
-void 
+void
 header_done(void *data, const char *at, size_t length)
 {
     /* foo */
 }
 
 
-static void 
-check_http_parser_init(http_parser *hp, void *data) 
+static void
+check_http_parser_init(http_parser *hp, void *data)
 {
     hp->data = data;
     hp->http_field = http_field;
@@ -639,8 +639,8 @@ check_http_parser_init(http_parser *hp, void *data)
 }
 
 
-static ngx_int_t 
-ngx_http_check_http_init(ngx_http_check_peer_t *peer) 
+static ngx_int_t
+ngx_http_check_http_init(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx                  *ctx;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
@@ -665,8 +665,8 @@ ngx_http_check_http_init(ngx_http_check_peer_t *peer)
 }
 
 
-static ngx_int_t 
-ngx_http_check_http_parse(ngx_http_check_peer_t *peer) 
+static ngx_int_t
+ngx_http_check_http_parse(ngx_http_check_peer_t *peer)
 {
     ssize_t                              n, offset, length;
     http_parser                         *hp;
@@ -686,12 +686,12 @@ ngx_http_check_http_parse(ngx_http_check_peer_t *peer)
 
         if (http_parser_finish(hp) == -1) {
             ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0,
-                          "http parse error with peer: %V, recv data: %s", 
+                          "http parse error with peer: %V, recv data: %s",
                           &peer->peer_addr->name, ctx->recv.start);
             return NGX_ERROR;
         }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                        "http_parse: hp->status_code_n: %d, conf: %d",
                        hp->status_code_n, ucscf->code.status_alive);
 
@@ -713,8 +713,8 @@ ngx_http_check_http_parse(ngx_http_check_peer_t *peer)
 }
 
 
-static void 
-ngx_http_check_http_reinit(ngx_http_check_peer_t *peer) 
+static void
+ngx_http_check_http_reinit(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx *ctx;
 
@@ -729,8 +729,8 @@ ngx_http_check_http_reinit(ngx_http_check_peer_t *peer)
 }
 
 
-static ngx_int_t 
-ngx_http_check_ssl_hello_init(ngx_http_check_peer_t *peer) 
+static ngx_int_t
+ngx_http_check_ssl_hello_init(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx                  *ctx;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
@@ -749,7 +749,7 @@ ngx_http_check_ssl_hello_init(ngx_http_check_peer_t *peer)
 
 
 /* a rough check of server ssl_hello responses */
-static ngx_int_t 
+static ngx_int_t
 ngx_http_check_ssl_hello_parse(ngx_http_check_peer_t *peer)
 {
     size_t                        size;
@@ -761,16 +761,16 @@ ngx_http_check_ssl_hello_parse(ngx_http_check_peer_t *peer)
     size = ctx->recv.last - ctx->recv.pos;
     if (size < sizeof(server_ssl_hello_t)) {
         return NGX_AGAIN;
-    } 
+    }
 
     resp = (server_ssl_hello_t *) ctx->recv.pos;
 
-    ngx_log_debug7(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug7(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "http check ssl_parse, type: %d, version: %d.%d, "
                    "length: %d, handshanke_type: %d, "
-                   "hello_version: %d.%d", 
-                   resp->msg_type, resp->version.major, resp->version.minor, 
-                   ntohs(resp->length), resp->handshake_type, 
+                   "hello_version: %d.%d",
+                   resp->msg_type, resp->version.major, resp->version.minor,
+                   ntohs(resp->length), resp->handshake_type,
                    resp->hello_version.major, resp->hello_version.minor);
 
     if (resp->msg_type != HANDSHAKE) {
@@ -785,8 +785,8 @@ ngx_http_check_ssl_hello_parse(ngx_http_check_peer_t *peer)
 }
 
 
-static void 
-ngx_http_check_ssl_hello_reinit(ngx_http_check_peer_t *peer) 
+static void
+ngx_http_check_ssl_hello_reinit(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx *ctx;
 
@@ -799,8 +799,8 @@ ngx_http_check_ssl_hello_reinit(ngx_http_check_peer_t *peer)
 }
 
 
-static ngx_int_t 
-ngx_http_check_mysql_init(ngx_http_check_peer_t *peer) 
+static ngx_int_t
+ngx_http_check_mysql_init(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx                  *ctx;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
@@ -818,8 +818,8 @@ ngx_http_check_mysql_init(ngx_http_check_peer_t *peer)
 }
 
 
-static ngx_int_t 
-ngx_http_check_mysql_parse(ngx_http_check_peer_t *peer) 
+static ngx_int_t
+ngx_http_check_mysql_parse(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx            *ctx;
     mysql_handshake_init_t        *handshake;
@@ -832,8 +832,8 @@ ngx_http_check_mysql_parse(ngx_http_check_peer_t *peer)
 
     handshake = (mysql_handshake_init_t *) ctx->recv.pos;
 
-    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
-                   "mysql_parse: packet_number=%d, protocol=%d, server=%s", 
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
+                   "mysql_parse: packet_number=%d, protocol=%d, server=%s",
                    handshake->packet_number, handshake->protocol_version,
                    handshake->others);
 
@@ -847,7 +847,7 @@ ngx_http_check_mysql_parse(ngx_http_check_peer_t *peer)
 
 
 static void
-ngx_http_check_mysql_reinit(ngx_http_check_peer_t *peer) 
+ngx_http_check_mysql_reinit(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx *ctx;
 
@@ -860,8 +860,8 @@ ngx_http_check_mysql_reinit(ngx_http_check_peer_t *peer)
 }
 
 
-static ngx_int_t 
-ngx_http_check_pop3_init(ngx_http_check_peer_t *peer) 
+static ngx_int_t
+ngx_http_check_pop3_init(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx                  *ctx;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
@@ -879,8 +879,8 @@ ngx_http_check_pop3_init(ngx_http_check_peer_t *peer)
 }
 
 
-static ngx_int_t 
-ngx_http_check_pop3_parse(ngx_http_check_peer_t *peer) 
+static ngx_int_t
+ngx_http_check_pop3_parse(ngx_http_check_peer_t *peer)
 {
     u_char                         ch;
     ngx_http_check_ctx            *ctx;
@@ -893,11 +893,11 @@ ngx_http_check_pop3_parse(ngx_http_check_peer_t *peer)
 
     ch = *(ctx->recv.start);
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "pop3_parse: packet_greeting \"%s\"", ctx->recv.start);
 
     /* RFC 1939
-       There are currently two status indicators: positive ("+OK") and 
+       There are currently two status indicators: positive ("+OK") and
        negative ("-ERR").  Servers MUST send the "+OK" and "-ERR" in upper case.
        */
     if (ch != '+') {
@@ -909,7 +909,7 @@ ngx_http_check_pop3_parse(ngx_http_check_peer_t *peer)
 
 
 static void
-ngx_http_check_pop3_reinit(ngx_http_check_peer_t *peer) 
+ngx_http_check_pop3_reinit(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx *ctx;
 
@@ -922,8 +922,8 @@ ngx_http_check_pop3_reinit(ngx_http_check_peer_t *peer)
 }
 
 
-static ngx_int_t 
-ngx_http_check_imap_init(ngx_http_check_peer_t *peer) 
+static ngx_int_t
+ngx_http_check_imap_init(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx                  *ctx;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
@@ -941,8 +941,8 @@ ngx_http_check_imap_init(ngx_http_check_peer_t *peer)
 }
 
 
-static ngx_int_t 
-ngx_http_check_imap_parse(ngx_http_check_peer_t *peer) 
+static ngx_int_t
+ngx_http_check_imap_parse(ngx_http_check_peer_t *peer)
 {
     u_char                        *p;
     ngx_http_check_ctx            *ctx;
@@ -953,7 +953,7 @@ ngx_http_check_imap_parse(ngx_http_check_peer_t *peer)
         return NGX_AGAIN;
     }
 
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "imap_parse: packet_greeting \"%s\"", ctx->recv.start);
 
     /* RFC 3501
@@ -984,7 +984,7 @@ ngx_http_check_imap_parse(ngx_http_check_peer_t *peer)
 
 
 static void
-ngx_http_check_imap_reinit(ngx_http_check_peer_t *peer) 
+ngx_http_check_imap_reinit(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx *ctx;
 
@@ -997,8 +997,8 @@ ngx_http_check_imap_reinit(ngx_http_check_peer_t *peer)
 }
 
 
-static ngx_int_t 
-ngx_http_check_ajp_init(ngx_http_check_peer_t *peer) 
+static ngx_int_t
+ngx_http_check_ajp_init(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx                  *ctx;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
@@ -1016,8 +1016,8 @@ ngx_http_check_ajp_init(ngx_http_check_peer_t *peer)
 }
 
 
-static ngx_int_t 
-ngx_http_check_ajp_parse(ngx_http_check_peer_t *peer) 
+static ngx_int_t
+ngx_http_check_ajp_parse(ngx_http_check_peer_t *peer)
 {
     u_char                        *p;
     ngx_http_check_ctx            *ctx;
@@ -1034,7 +1034,7 @@ ngx_http_check_ajp_parse(ngx_http_check_peer_t *peer)
     ajp_raw_packet_t              *ajp;
 
     ajp = (ajp_raw_packet_t *)p;
-    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0, 
+    ngx_log_debug3(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "ajp_parse: preamble=0x%xd, length=0x%xd, type=0x%xd",
                    ntohs(ajp->preamble), ntohs(ajp->length), ajp->type);
 #endif
@@ -1049,7 +1049,7 @@ ngx_http_check_ajp_parse(ngx_http_check_peer_t *peer)
 
 
 static void
-ngx_http_check_ajp_reinit(ngx_http_check_peer_t *peer) 
+ngx_http_check_ajp_reinit(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx *ctx;
 
@@ -1062,8 +1062,8 @@ ngx_http_check_ajp_reinit(ngx_http_check_peer_t *peer)
 }
 
 
-static void 
-ngx_http_check_send_handler(ngx_event_t *event) 
+static void
+ngx_http_check_send_handler(ngx_event_t *event)
 {
     ssize_t                         size;
     ngx_connection_t               *c;
@@ -1125,8 +1125,8 @@ ngx_http_check_send_handler(ngx_event_t *event)
 #if (NGX_DEBUG)
         ngx_err_t                       err;
         err = (size >=0) ? 0 : ngx_socket_errno;
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, err, 
-                       "http check send size: %d, total: %d", 
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, err,
+                       "http check send size: %d, total: %d",
                        size, ctx->send.last - ctx->send.pos);
 #endif
 
@@ -1156,8 +1156,8 @@ check_send_fail:
 }
 
 
-static void 
-ngx_http_check_recv_handler(ngx_event_t *event) 
+static void
+ngx_http_check_recv_handler(ngx_event_t *event)
 {
     u_char                         *new_buf;
     ssize_t                         size, n, rc;
@@ -1218,7 +1218,7 @@ ngx_http_check_recv_handler(ngx_event_t *event)
 #if (NGX_DEBUG)
         ngx_err_t                       err;
         err = (size >= 0) ? 0 : ngx_socket_errno;
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, err, 
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, err,
                        "http check recv size: %d, peer: %V",
                        size, &peer->peer_addr->name);
 #endif
@@ -1235,9 +1235,9 @@ ngx_http_check_recv_handler(ngx_event_t *event)
         }
     }
 
-    rc = peer->parse(peer); 
+    rc = peer->parse(peer);
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0, 
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
                    "http check parse rc: %d, peer: %V",
                    rc, &peer->peer_addr->name);
 
@@ -1248,8 +1248,8 @@ ngx_http_check_recv_handler(ngx_event_t *event)
 
     case NGX_ERROR:
         ngx_log_error(NGX_LOG_ERR, event->log, 0,
-                      "check protocol %s error with peer: %V ", 
-                      peer->conf->check_type_conf->name, 
+                      "check protocol %s error with peer: %V ",
+                      peer->conf->check_type_conf->name,
                       &peer->peer_addr->name);
 
         ngx_http_check_status_update(peer, 0);
@@ -1272,8 +1272,8 @@ check_recv_fail:
 }
 
 
-static void 
-ngx_http_check_connect_handler(ngx_event_t *event) 
+static void
+ngx_http_check_connect_handler(ngx_event_t *event)
 {
     ngx_int_t                            rc;
     ngx_connection_t                    *c;
@@ -1295,7 +1295,7 @@ ngx_http_check_connect_handler(ngx_event_t *event)
 
     peer->pc.get = ngx_event_get_peer;
     peer->pc.log = event->log;
-    peer->pc.log_error = NGX_ERROR_ERR; 
+    peer->pc.log_error = NGX_ERROR_ERR;
 
     peer->pc.cached = 0;
     peer->pc.connection = NULL;
@@ -1324,14 +1324,14 @@ ngx_http_check_connect_handler(ngx_event_t *event)
     ngx_add_timer(&peer->check_timeout_ev, ucscf->check_timeout);
 
     /* The kqueue's loop interface need it. */
-    if (rc == NGX_OK) { 
+    if (rc == NGX_OK) {
         c->write->handler(c->write);
     }
 }
 
 
-static void 
-ngx_http_check_begin_handler(ngx_event_t *event) 
+static void
+ngx_http_check_begin_handler(ngx_event_t *event)
 {
     ngx_http_check_peer_t                *peer;
     ngx_http_upstream_check_srv_conf_t   *ucscf;
@@ -1350,16 +1350,16 @@ ngx_http_check_begin_handler(ngx_event_t *event)
         return;
     }
 
-    ngx_log_debug5(NGX_LOG_DEBUG_HTTP, event->log, 0, 
+    ngx_log_debug5(NGX_LOG_DEBUG_HTTP, event->log, 0,
                    "http check begin handler index:%ud, owner: %d, "
-                   "ngx_pid: %ud, time:%ud, interal:%ud", 
-                   peer->index, peer->shm->owner, 
-                   ngx_pid, (ngx_current_msec - peer->shm->access_time), 
+                   "ngx_pid: %ud, time:%ud, interal:%ud",
+                   peer->index, peer->shm->owner,
+                   ngx_pid, (ngx_current_msec - peer->shm->access_time),
                    ucscf->check_interval);
 
     ngx_spinlock(&peer->shm->lock, ngx_pid, 1024);
 
-    if (((ngx_current_msec - peer->shm->access_time) >= ucscf->check_interval) && 
+    if (((ngx_current_msec - peer->shm->access_time) >= ucscf->check_interval) &&
             peer->shm->owner == NGX_INVALID_PID)
     {
         peer->shm->owner = ngx_pid;
@@ -1373,7 +1373,7 @@ ngx_http_check_begin_handler(ngx_event_t *event)
 }
 
 
-char * 
+char *
 ngx_http_upstream_check_init_shm(ngx_conf_t *cf, void *conf)
 {
     ngx_str_t                            *shm_name;
@@ -1396,10 +1396,10 @@ ngx_http_upstream_check_init_shm(ngx_conf_t *cf, void *conf)
         /*the default check share memory size*/
         shm_size = (umcf->upstreams.nelts + 1 )* ngx_pagesize;
 
-        shm_size = shm_size < ucmcf->check_shm_size ? 
+        shm_size = shm_size < ucmcf->check_shm_size ?
             ucmcf->check_shm_size : shm_size;
 
-        shm_zone = ngx_shared_memory_add(cf, shm_name, shm_size, 
+        shm_zone = ngx_shared_memory_add(cf, shm_name, shm_size,
                                          &ngx_http_upstream_check_module);
 
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cf->log, 0,
@@ -1419,8 +1419,8 @@ ngx_http_upstream_check_init_shm(ngx_conf_t *cf, void *conf)
 }
 
 
-ngx_int_t 
-ngx_http_check_add_timers(ngx_cycle_t *cycle) 
+ngx_int_t
+ngx_http_check_add_timers(ngx_cycle_t *cycle)
 {
     ngx_uint_t                          i;
     ngx_msec_t                          t, delay;
@@ -1441,7 +1441,7 @@ ngx_http_check_add_timers(ngx_cycle_t *cycle)
         return NGX_OK;
     }
 
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cycle->log, 0, 
+    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, cycle->log, 0,
                    "http check upstream init_process, shm_name: %V, "
                    "peer number: %ud",
                    &peers->check_shm_name,
@@ -1482,8 +1482,8 @@ ngx_http_check_add_timers(ngx_cycle_t *cycle)
         peer[i].parse = cf->parse;
         peer[i].reinit = cf->reinit;
 
-        /* 
-         * Default delay interval is 1 second. 
+        /*
+         * Default delay interval is 1 second.
          * I don't want to trigger the check event too close.
          * */
         delay = ucscf->check_interval > 1000 ? ucscf->check_interval : 1000;
@@ -1496,8 +1496,8 @@ ngx_http_check_add_timers(ngx_cycle_t *cycle)
 }
 
 
-ngx_int_t 
-ngx_http_upstream_check_status_handler(ngx_http_request_t *r) 
+ngx_int_t
+ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
 {
     ngx_int_t                       rc;
     ngx_buf_t                      *b;
@@ -1538,7 +1538,7 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    shm_zone = ngx_shared_memory_find((ngx_cycle_t *)ngx_cycle, &shm_name, 
+    shm_zone = ngx_shared_memory_find((ngx_cycle_t *)ngx_cycle, &shm_name,
                                        &ngx_http_upstream_check_module);
 
     if (shm_zone == NULL || shm_zone->data == NULL) {
@@ -1564,7 +1564,7 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
     out.buf = b;
     out.next = NULL;
 
-    b->last = ngx_sprintf(b->last, 
+    b->last = ngx_sprintf(b->last,
             "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\n"
             "\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
             "<html xmlns=\"http://www.w3.org/1999/xhtml\">\n"
@@ -1588,27 +1588,27 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
         peers->peers.nelts, &shm_name);
 
     for (i = 0; i < peers->peers.nelts; i++) {
-        b->last = ngx_sprintf(b->last, 
+        b->last = ngx_sprintf(b->last,
                 "  <tr%s>\n"
-                "    <td>%ui</td>\n" 
-                "    <td>%V</td>\n" 
-                "    <td>%V</td>\n" 
-                "    <td>%s</td>\n" 
-                "    <td>%ui</td>\n" 
-                "    <td>%ui</td>\n" 
-                "    <td>%s</td>\n" 
+                "    <td>%ui</td>\n"
+                "    <td>%V</td>\n"
+                "    <td>%V</td>\n"
+                "    <td>%s</td>\n"
+                "    <td>%ui</td>\n"
+                "    <td>%ui</td>\n"
+                "    <td>%s</td>\n"
                 "  </tr>\n",
                 peer_shm[i].down ? " bgcolor=\"#FF0000\"" : "",
-                i, 
-                peer[i].upstream_name, 
-                &peer[i].peer_addr->name, 
+                i,
+                peer[i].upstream_name,
+                &peer[i].peer_addr->name,
                 peer_shm[i].down ? "down" : "up",
-                peer_shm[i].rise_count, 
-                peer_shm[i].fall_count, 
+                peer_shm[i].rise_count,
+                peer_shm[i].fall_count,
                 peer[i].conf->check_type_conf->name);
     }
 
-    b->last = ngx_sprintf(b->last, 
+    b->last = ngx_sprintf(b->last,
             "</table>\n"
             "</body>\n"
             "</html>\n");

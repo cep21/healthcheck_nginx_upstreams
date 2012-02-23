@@ -15,7 +15,7 @@ if [ $ngx_found = yes ]; then
     HTTP_MODULES="$HTTP_MODULES ngx_http_upstream_check_module"
     NGX_ADDON_DEPS="$NGX_ADDON_DEPS $ngx_feature_deps"
     NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_check_src"
-else 
+else
     cat << END
     $0: error: the ngx_http_upstream_check_module addon error.
 END

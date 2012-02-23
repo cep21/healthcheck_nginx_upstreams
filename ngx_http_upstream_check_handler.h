@@ -119,7 +119,7 @@ typedef void (*element_cb)(void *data, const char *at, size_t length);
 typedef void (*field_cb)(void *data, const char *field, size_t flen, const char *value, size_t vlen);
 
 
-typedef struct http_parser { 
+typedef struct http_parser {
   int      cs;
   size_t   body_start;
   int      content_len;
@@ -137,7 +137,7 @@ typedef struct http_parser {
   element_cb status_code;
   element_cb reason_phrase;
   element_cb header_done;
-  
+
 } http_parser;
 
 int http_parser_init(http_parser *parser);
@@ -146,7 +146,7 @@ size_t http_parser_execute(http_parser *parser, const char *data, size_t len, si
 int http_parser_has_error(http_parser *parser);
 int http_parser_is_finished(http_parser *parser);
 
-#define http_parser_nread(parser) (parser)->nread 
+#define http_parser_nread(parser) (parser)->nread
 
 ngx_int_t ngx_http_upstream_check_status_handler(ngx_http_request_t *r);
 

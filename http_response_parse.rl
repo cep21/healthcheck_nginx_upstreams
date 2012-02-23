@@ -15,13 +15,13 @@
 /** Machine **/
 
 %%{
-  
+
   machine http_parser;
 
   action mark {MARK(mark, fpc); }
 
   action start_field { MARK(field_start, fpc); }
-  action write_field { 
+  action write_field {
     parser->field_len = LEN(field_start, fpc);
   }
 
@@ -33,7 +33,7 @@
     }
   }
 
-  action http_version {	
+  action http_version {
     if(parser->http_version != NULL)
       parser->http_version(parser->data, PTR_TO(mark), LEN(mark, fpc));
   }
@@ -48,8 +48,8 @@
       parser->reason_phrase(parser->data, PTR_TO(mark), LEN(mark,fpc));
   }
 
-  action done { 
-    parser->body_start = fpc - buffer + 1; 
+  action done {
+    parser->body_start = fpc - buffer + 1;
     if(parser->header_done != NULL)
       parser->header_done(parser->data, fpc + 1, pe - fpc - 1);
     fbreak;
@@ -99,7 +99,7 @@ int http_parser_init(http_parser *parser)  {
   parser->mark = 0;
   parser->nread = 0;
   parser->field_len = 0;
-  parser->field_start = 0;    
+  parser->field_start = 0;
 
   return(1);
 }
