@@ -1,7 +1,6 @@
 #ifndef _NGX_HTTP_UPSTREAM_CHECK_MODELE_H_INCLUDED_
 #define _NGX_HTTP_UPSTREAM_CHECK_MODELE_H_INCLUDED_
 
-
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_event.h>
@@ -49,17 +48,17 @@ typedef void (*ngx_http_check_packet_clean_pt)(ngx_http_check_peer_t *peer);
 #define NGX_CHECK_SMTP_ERR             0x8000
 
 struct check_conf_s {
-    ngx_uint_t type;
+    ngx_uint_t                        type;
 
-    char *name;
+    char                             *name;
 
-    ngx_str_t default_send;
+    ngx_str_t                         default_send;
     
-    /*HTTP*/
-    ngx_uint_t default_status_alive;
+    /* HTTP */
+    ngx_uint_t                        default_status_alive;
 
-    ngx_event_handler_pt  send_handler;
-    ngx_event_handler_pt  recv_handler;
+    ngx_event_handler_pt              send_handler;
+    ngx_event_handler_pt              recv_handler;
 
     ngx_http_check_packet_init_pt     init;
     ngx_http_check_packet_parse_pt    parse;
@@ -71,7 +70,7 @@ struct check_conf_s {
 typedef struct {
     ngx_uint_t                       check_shm_size;
     ngx_http_check_peers_t          *peers;
-}ngx_http_upstream_check_main_conf_t;
+} ngx_http_upstream_check_main_conf_t;
 
 typedef struct {
     ngx_uint_t                       fall_count;
@@ -88,11 +87,11 @@ typedef struct {
     } code;
 
     ngx_uint_t                       default_down;
-}ngx_http_upstream_check_srv_conf_t;
+} ngx_http_upstream_check_srv_conf_t;
 
 
-ngx_uint_t ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us,
-        ngx_peer_addr_t *peer);
+ngx_uint_t ngx_http_check_add_peer(ngx_conf_t *cf, 
+        ngx_http_upstream_srv_conf_t *us, ngx_peer_addr_t *peer);
 
 check_conf_t *ngx_http_get_check_type_conf(ngx_str_t *str);
 

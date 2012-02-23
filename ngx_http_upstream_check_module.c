@@ -6,6 +6,7 @@
 #include "ngx_http_upstream_check_module.h"
 #include "ngx_http_upstream_check_handler.h"
 
+
 static char *ngx_http_upstream_check(ngx_conf_t *cf, 
         ngx_command_t *cmd, void *conf);
 static char * ngx_http_upstream_check_http_send(ngx_conf_t *cf, 
@@ -38,39 +39,39 @@ static ngx_conf_bitmask_t  ngx_check_http_expect_alive_masks[] = {
 static ngx_command_t  ngx_http_upstream_check_commands[] = {
 
     { ngx_string("check"),
-        NGX_HTTP_UPS_CONF|NGX_CONF_1MORE,
-        ngx_http_upstream_check,
-        0,
-        0,
-        NULL },
+      NGX_HTTP_UPS_CONF|NGX_CONF_1MORE,
+      ngx_http_upstream_check,
+      0,
+      0,
+      NULL },
 
     { ngx_string("check_http_send"),
-        NGX_HTTP_UPS_CONF|NGX_CONF_TAKE1,
-        ngx_http_upstream_check_http_send,
-        0,
-        0,
-        NULL },
+      NGX_HTTP_UPS_CONF|NGX_CONF_TAKE1,
+      ngx_http_upstream_check_http_send,
+      0,
+      0,
+      NULL },
 
     { ngx_string("check_http_expect_alive"),
-        NGX_HTTP_UPS_CONF|NGX_CONF_1MORE,
-        ngx_http_upstream_check_http_expect_alive,
-        0,
-        0,
-        NULL },
+      NGX_HTTP_UPS_CONF|NGX_CONF_1MORE,
+      ngx_http_upstream_check_http_expect_alive,
+      0,
+      0,
+      NULL },
 
     { ngx_string("check_shm_size"),
-        NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
-        ngx_http_upstream_check_shm_size,
-        0,
-        0,
-        NULL },
+      NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
+      ngx_http_upstream_check_shm_size,
+      0,
+      0,
+      NULL },
 
     { ngx_string("check_status"),
-        NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
-        ngx_http_upstream_check_status_set_status,
-        0,
-        0,
-        NULL },
+      NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
+      ngx_http_upstream_check_status_set_status,
+      0,
+      0,
+      NULL },
 
     ngx_null_command
 };
@@ -169,7 +170,7 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_msec_t                           interval, timeout;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
 
-    /*set default*/
+    /* set default */
     rise = 2;
     fall = 5;
     interval = 30000;
@@ -178,7 +179,8 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
-    ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
+    ucscf = ngx_http_conf_get_module_srv_conf(cf, 
+            ngx_http_upstream_check_module);
     if (ucscf == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -256,8 +258,9 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                 default_down = 0;
             } else {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                        "invalid value \"%s\", it must be \"true\" or \"false\"",
-                        value[i].data);
+                                   "invalid value \"%s\", "
+                                   "it must be \"true\" or \"false\"",
+                                   value[i].data);
                 return NGX_CONF_ERROR;
             }
 
@@ -283,8 +286,9 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 
 invalid_check_parameter:
+
     ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-            "invalid parameter \"%V\"", &value[i]);
+                       "invalid parameter \"%V\"", &value[i]);
 
     return NGX_CONF_ERROR;
 }
@@ -360,7 +364,8 @@ ngx_http_upstream_check_shm_size(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_str_t                            *value;
     ngx_http_upstream_check_main_conf_t  *ucmcf; 
 
-    ucmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_upstream_check_module);
+    ucmcf = ngx_http_conf_get_module_main_conf(cf, 
+            ngx_http_upstream_check_module);
 
     if (ucmcf->check_shm_size) {
         return "is duplicate";
