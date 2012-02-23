@@ -148,32 +148,6 @@ int http_parser_is_finished(http_parser *parser);
 
 #define http_parser_nread(parser) (parser)->nread 
 
-typedef struct smtp_parser {
-  int        cs;
-  size_t     nread;
-  size_t     mark;
-
-  int        hello_reply_code;
-
-  void      *data;
-
-  element_cb domain;
-  element_cb greeting_text;
-  element_cb reply_code;
-  element_cb reply_text;
-  element_cb smtp_done;
-    
-} smtp_parser;
-
-int smtp_parser_init(smtp_parser *parser);
-int smtp_parser_finish(smtp_parser *parser);
-size_t smtp_parser_execute(smtp_parser *parser, const char *data, size_t len, size_t off);
-int smtp_parser_has_error(smtp_parser *parser);
-int smtp_parser_is_finished(smtp_parser *parser);
-
-#define http_parser_nread(parser) (parser)->nread 
-
-
 ngx_int_t ngx_http_upstream_check_status_handler(ngx_http_request_t *r);
 
 ngx_uint_t ngx_http_check_peer_down(ngx_uint_t index);

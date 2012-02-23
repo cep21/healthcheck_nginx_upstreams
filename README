@@ -52,7 +52,7 @@ Directives
   check
     syntax: *check interval=milliseconds [fall=count] [rise=count]
     [timeout=milliseconds] [default_down=true|false]
-    [type=tcp|ssl_hello|smtp|mysql|pop3|imap|ajp]*
+    [type=tcp|ssl_hello|mysql|pop3|imap|ajp]*
 
     default: *none, if parameters omitted, default parameters are
     interval=30000 fall=5 rise=2 timeout=1000 default_down=true type=tcp*
@@ -86,21 +86,17 @@ Directives
         3.  *http* sends a http requst packet, recvives and parses the http
             response to diagnose if the upstream server is alive.
 
-        4.  *smtp* sends a smtp requst packet, recvives and parses the smtp
-            response to diagnose if the upstream server is alive. The
-            response begins with '2' should be an OK response.
-
-        5.  *mysql* connects to the mysql server, recvives the greeting
+        4.  *mysql* connects to the mysql server, recvives the greeting
             response to diagnose if the upstream server is alive.
 
-        6.  *pop3* recvives and parses the pop3 response to diagnose if the
+        5.  *pop3* recvives and parses the pop3 response to diagnose if the
             upstream server is alive. The response begins with '+' should be
             an OK response.
 
-        7.  *imap* connects to the imap server, recvives the greeting
+        6.  *imap* connects to the imap server, recvives the greeting
             response to diagnose if the upstream server is alive.
 
-        8.  *ajp* sends a AJP Cping packet, recvives and parses the AJP
+        7.  *ajp* sends a AJP Cping packet, recvives and parses the AJP
             Cpong response to diagnose if the upstream server is alive.
 
   check_http_send
@@ -122,27 +118,6 @@ Directives
     context: *upstream*
 
     description: These status codes indicate the upstream server's http
-    response is ok, the backend is alive.
-
-  check_smtp_send
-    syntax: *check_smtp_send smtp_packet*
-
-    default: *"HELO smtp.localdomain\r\n"*
-
-    context: *upstream*
-
-    description: If you set the check type is smtp, then the check function
-    will sends this smtp packet to check the upstream server.
-
-  check_smtp_expect_alive
-    syntax: *check_smtp_expect_alive [smtp_2xx | smtp_3xx | smtp_4xx |
-    smtp_5xx]*
-
-    default: *smtp_2xx*
-
-    context: *upstream*
-
-    description: These status codes indicate the upstream server's smtp
     response is ok, the backend is alive.
 
   check_shm_size
@@ -203,12 +178,10 @@ Compatibility
     *   My test bed is 0.7.67 and 0.8.49+.
 
 Notes
-    The http_response_parse.rl and smtp_response_parse.rl are ragel
-    (<http://www.complang.org/ragel/>) scripts , you can edit the script and
-    compile it like this:
+    The http_response_parse.rl is ragel (<http://www.complang.org/ragel/>)
+    script , you can edit the script and compile it like this:
 
         $ ragel -G2 http_response_parse.rl
-        $ ragel -G2 smtp_response_parse.rl
 
 TODO
 Known Issues

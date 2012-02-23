@@ -10,11 +10,7 @@ static char *ngx_http_upstream_check(ngx_conf_t *cf,
         ngx_command_t *cmd, void *conf);
 static char * ngx_http_upstream_check_http_send(ngx_conf_t *cf, 
         ngx_command_t *cmd, void *conf);
-static char * ngx_http_upstream_check_smtp_send(ngx_conf_t *cf, 
-        ngx_command_t *cmd, void *conf);
 static char * ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, 
-        ngx_command_t *cmd, void *conf); 
-static char * ngx_http_upstream_check_smtp_expect_alive(ngx_conf_t *cf, 
         ngx_command_t *cmd, void *conf); 
 
 static char * ngx_http_upstream_check_shm_size(ngx_conf_t *cf, 
@@ -38,13 +34,6 @@ static ngx_conf_bitmask_t  ngx_check_http_expect_alive_masks[] = {
     { ngx_null_string, 0 }
 };
 
-static ngx_conf_bitmask_t  ngx_check_smtp_expect_alive_masks[] = {
-    { ngx_string("smtp_2xx"), NGX_CHECK_SMTP_2XX },
-    { ngx_string("smtp_3xx"), NGX_CHECK_SMTP_3XX },
-    { ngx_string("smtp_4xx"), NGX_CHECK_SMTP_4XX },
-    { ngx_string("smtp_5xx"), NGX_CHECK_SMTP_5XX },
-    { ngx_null_string, 0 }
-};
 
 static ngx_command_t  ngx_http_upstream_check_commands[] = {
 
@@ -62,23 +51,9 @@ static ngx_command_t  ngx_http_upstream_check_commands[] = {
         0,
         NULL },
 
-    { ngx_string("check_smtp_send"),
-        NGX_HTTP_UPS_CONF|NGX_CONF_TAKE1,
-        ngx_http_upstream_check_smtp_send,
-        0,
-        0,
-        NULL },
-
     { ngx_string("check_http_expect_alive"),
         NGX_HTTP_UPS_CONF|NGX_CONF_1MORE,
         ngx_http_upstream_check_http_expect_alive,
-        0,
-        0,
-        NULL },
-
-    { ngx_string("check_smtp_expect_alive"),
-        NGX_HTTP_UPS_CONF|NGX_CONF_1MORE,
-        ngx_http_upstream_check_smtp_expect_alive,
         0,
         0,
         NULL },
@@ -332,22 +307,6 @@ ngx_http_upstream_check_http_send(ngx_conf_t *cf, ngx_command_t *cmd, void *conf
 
 
 static char *
-ngx_http_upstream_check_smtp_send(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
-{
-    ngx_str_t                           *value;
-    ngx_http_upstream_check_srv_conf_t  *ucscf;
-
-    value = cf->args->elts;
-
-    ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
-
-    ucscf->send = value[1];
-
-    return NGX_CONF_OK;
-}
-
-
-static char *
 ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
 {
     ngx_str_t                           *value;
@@ -357,54 +316,6 @@ ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
 
     value = cf->args->elts;
     mask = ngx_check_http_expect_alive_masks; 
-
-    ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
-    bit = ucscf->code.status_alive;
-
-    for (i = 1; i < cf->args->nelts; i++) {
-        for (m = 0; mask[m].name.len != 0; m++) {
-
-            if (mask[m].name.len != value[i].len
-                || ngx_strcasecmp(mask[m].name.data, value[i].data) != 0)
-            {
-                continue;
-            }
-
-            if (bit & mask[m].mask) {
-                ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                                   "duplicate value \"%s\"", value[i].data);
-
-            } else {
-                bit |= mask[m].mask;
-            }
-
-            break;
-        }
-
-        if (mask[m].name.len == 0) {
-            ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                               "invalid value \"%s\"", value[i].data);
-
-            return NGX_CONF_ERROR;
-        }
-    }
-
-    ucscf->code.status_alive = bit;
-
-    return NGX_CONF_OK;
-}
-
-
-static char *
-ngx_http_upstream_check_smtp_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf) 
-{
-    ngx_str_t                           *value;
-    ngx_uint_t                           bit, i, m;
-    ngx_conf_bitmask_t                  *mask;
-    ngx_http_upstream_check_srv_conf_t  *ucscf;
-
-    value = cf->args->elts;
-    mask = ngx_check_smtp_expect_alive_masks; 
 
     ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
     bit = ucscf->code.status_alive;
