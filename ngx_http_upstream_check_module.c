@@ -193,7 +193,7 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             ucscf->check_type_conf = ngx_http_get_check_type_conf(&s);
 
-            if ( ucscf->check_type_conf == NULL) {
+            if (ucscf->check_type_conf == NULL) {
                 goto invalid_check_parameter;
             }
 
@@ -207,6 +207,8 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             interval = ngx_atoi(s.data, s.len);
             if (interval == (ngx_msec_t) NGX_ERROR) {
                 goto invalid_check_parameter;
+            } else if (interval == 0) {
+                goto invalid_check_parameter;
             }
 
             continue;
@@ -218,6 +220,8 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             timeout = ngx_atoi(s.data, s.len);
             if (timeout == (ngx_msec_t) NGX_ERROR) {
+                goto invalid_check_parameter;
+            } else if (timeout == 0) {
                 goto invalid_check_parameter;
             }
 
@@ -231,6 +235,8 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
             rise = ngx_atoi(s.data, s.len);
             if (rise == (ngx_uint_t) NGX_ERROR) {
                 goto invalid_check_parameter;
+            } else if (rise == 0) {
+                goto invalid_check_parameter;
             }
 
             continue;
@@ -242,6 +248,8 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             fall = ngx_atoi(s.data, s.len);
             if (fall == (ngx_uint_t) NGX_ERROR) {
+                goto invalid_check_parameter;
+            } else if (fall == 0) {
                 goto invalid_check_parameter;
             }
 
