@@ -21,8 +21,9 @@
 use lib 'lib';
 use Test::Nginx::LWP;
 
-plan tests => repeat_each() * 2 * blocks();
+plan tests => repeat_each(2) * 2 * blocks();
 
+no_root_location();
 #no_diff;
 
 run_tests();
@@ -30,7 +31,7 @@ run_tests();
 __DATA__
 
 === TEST 1: the http_check test-single server
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
@@ -38,19 +39,17 @@ __DATA__
         check_http_expect_alive http_2xx http_3xx;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass http://test;
-        }
+--- config
+    location / {
+        proxy_pass http://test;
     }
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 2: the http_check test-multi_server
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
@@ -61,19 +60,17 @@ GET /
         check_http_expect_alive http_2xx http_3xx;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass http://test;
-        }
+--- config
+    location / {
+        proxy_pass http://test;
     }
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 3: the http_check test
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
@@ -84,38 +81,34 @@ GET /
         check_http_expect_alive http_2xx http_3xx;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass http://test;
-        }
+--- config
+    location / {
+        proxy_pass http://test;
     }
+
 --- request
 GET /
 --- error_code: 502
 --- response_body_like: ^.*$
 
 === TEST 4: the http_check without check directive
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass http://test;
-        }
+--- config
+    location / {
+        proxy_pass http://test;
     }
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 5: the http_check which does not use the upstream
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
@@ -126,19 +119,17 @@ GET /
         check_http_expect_alive http_2xx http_3xx;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass http://blog.163.com;
-        }
+--- config
+    location / {
+        proxy_pass http://blog.163.com;
     }
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 6: the http_check test-single server
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         ip_hash;
@@ -148,19 +139,17 @@ GET /
         check_http_expect_alive http_2xx http_3xx;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass http://test;
-        }
+--- config
+    location / {
+        proxy_pass http://test;
     }
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 7: the http_check test-multi_server
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
@@ -171,19 +160,17 @@ GET /
         check_http_expect_alive http_2xx http_3xx;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass http://test;
-        }
+--- config
+    location / {
+        proxy_pass http://test;
     }
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 8: the http_check test
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
@@ -194,40 +181,36 @@ GET /
         check_http_expect_alive http_2xx http_3xx;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass http://test;
-        }
+--- config
+    location / {
+        proxy_pass http://test;
     }
+
 --- request
 GET /
 --- error_code: 502
 --- response_body_like: ^.*$
 
 === TEST 9: the http_check without check directive
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
         ip_hash;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass http://test;
-        }
+--- config
+    location / {
+        proxy_pass http://test;
     }
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>$
 
 
 === TEST 10: the http_check which does not use the upstream
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
@@ -238,19 +221,17 @@ GET /
         check_http_expect_alive http_2xx http_3xx;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass http://blog.163.com;
-        }
+--- config
+    location / {
+        proxy_pass http://blog.163.com;
     }
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 11: the http_check which does not use the upstream, with variable
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
@@ -263,14 +244,12 @@ GET /
 
     resolver 8.8.8.8;
 
-    server {
-        listen 1982;
-
+--- config
         location / {
             set $test "/";
             proxy_pass http://blog.163.com$test;
         }
-    }
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>$

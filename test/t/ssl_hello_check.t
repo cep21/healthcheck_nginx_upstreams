@@ -23,6 +23,7 @@ use Test::Nginx::LWP;
 
 plan tests => repeat_each() * 2 * blocks();
 
+no_root_location();
 #no_diff;
 
 run_tests();
@@ -30,7 +31,7 @@ run_tests();
 __DATA__
 
 === TEST 1: the ssl_hello_check test
---- config
+--- http_config
     upstream test{
         server www.paypal.com:443;
 
@@ -38,19 +39,17 @@ __DATA__
         check interval=4000 rise=1 fall=5 timeout=2000 type=ssl_hello;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass https://test;
-        }
+--- config
+    location / {
+        proxy_pass https://test;
     }
+   
 --- request
 GET /
 --- response_body_like: ^(.*)$
 
 === TEST 2: the ssl_hello_check test with ip_hash
---- config
+--- http_config
     upstream test{
         server www.paypal.com:443;
         ip_hash;
@@ -58,13 +57,11 @@ GET /
         check interval=4000 rise=1 fall=5 timeout=2000 type=ssl_hello;
     }
 
-    server {
-        listen 1982;
-
-        location / {
-            proxy_pass https://test;
-        }
+--- config
+    location / {
+        proxy_pass https://test;
     }
+
 --- request
 GET /
 --- response_body_like: ^(.*)$

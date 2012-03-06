@@ -23,6 +23,7 @@ use Test::Nginx::LWP;
 
 plan tests => repeat_each() * 2 * blocks();
 
+no_root_location();
 #no_diff;
 
 run_tests();
@@ -30,7 +31,7 @@ run_tests();
 __DATA__
 
 === TEST 1: the tcp_check test
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
 
@@ -38,20 +39,17 @@ __DATA__
         check interval=3000 rise=1 fall=5 timeout=1000;
     }
 
-    server {
-        listen 1982;
-        server_name localhost;
-
-        location / { 
-            proxy_pass http://test;
-        }
+--- config
+    location / { 
+        proxy_pass http://test;
     }
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 2: the tcp_check test with ip_hash
---- config
+--- http_config
     upstream test{
         server blog.163.com:80;
         ip_hash;
@@ -59,14 +57,11 @@ GET /
         check interval=3000 rise=1 fall=5 timeout=1000;
     }
 
-    server {
-        listen 1982;
-        server_name localhost;
-
-        location / { 
-            proxy_pass http://test;
-        }
+--- config
+    location / { 
+        proxy_pass http://test;
     }
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>$

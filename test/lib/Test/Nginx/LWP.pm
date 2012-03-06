@@ -4,7 +4,7 @@ use lib 'lib';
 use lib 'inc';
 use Test::Base -Base;
 
-our $VERSION = '0.08';
+our $VERSION = '0.18';
 
 our $NoLongString;
 
@@ -30,8 +30,12 @@ use Test::Nginx::Util qw(
     $RepeatEach
     worker_connections
     master_process_enabled
+    master_on
+    master_off
     config_preamble
     repeat_each
+    no_shuffle
+    no_root_location
 );
 
 our $UserAgent = LWP::UserAgent->new;
@@ -42,14 +46,14 @@ $UserAgent->agent(__PACKAGE__);
 
 our @EXPORT = qw( plan run_tests run_test
     repeat_each config_preamble worker_connections
-    master_process_enabled
-    no_long_string);
+    master_process_enabled master_on master_off
+    no_long_string no_shuffle no_root_location);
 
 sub no_long_string () {
     $NoLongString = 1;
 }
 
-sub run_test_helper ($);
+sub run_test_helper ($$);
 
 $RunTestHelper = \&run_test_helper;
 
@@ -94,8 +98,8 @@ sub chunk_it ($$$) {
     }
 }
 
-sub run_test_helper ($) {
-    my ($block) = @_;
+sub run_test_helper ($$) {
+    my ($block, $dry_run) = @_;
 
     my $request = $block->request;
 
@@ -160,14 +164,23 @@ sub run_test_helper ($) {
     #warn "req: ", $req->as_string, "\n";
     #warn "DONE!!!!!!!!!!!!!!!!!!!!";
 
-    my $res = $UserAgent->request($req);
+    my $res = HTTP::Response->new;
+    unless ($dry_run) {
+        $res = $UserAgent->request($req);
+    }
 
     #warn "res returned!!!";
 
-    if (defined $block->error_code) {
-        is($res->code, $block->error_code, "$name - status code ok");
+    if ($dry_run) {
+        SKIP: {
+            Test::More::skip("$name - tests skipped due to the lack of directive $dry_run", 1);
+        }
     } else {
-        is($res->code, 200, "$name - status code ok");
+        if (defined $block->error_code) {
+            is($res->code, $block->error_code, "$name - status code ok");
+        } else {
+            is($res->code, 200, "$name - status code ok");
+        }
     }
 
     if (defined $block->response_headers) {
@@ -177,8 +190,14 @@ sub run_test_helper ($) {
             if (!defined $expected_val) {
                 $expected_val = '';
             }
-            is $expected_val, $val,
-                "$name - header $key ok";
+            if ($dry_run) {
+                SKIP: {
+                    Test::More::skip("$name - tests skipped due to the lack of directive $dry_run", 1);
+                }
+            } else {
+                is $expected_val, $val,
+                    "$name - header $key ok";
+            }
         }
     } elsif (defined $block->response_headers_like) {
         my $headers = parse_headers($block->response_headers_like);
@@ -187,8 +206,14 @@ sub run_test_helper ($) {
             if (!defined $expected_val) {
                 $expected_val = '';
             }
-            like $expected_val, qr/^$val$/,
-                "$name - header $key like ok";
+            if ($dry_run) {
+                SKIP: {
+                    Test::More::skip("$name - tests skipped due to the lack of directive $dry_run", 1);
+                }
+            } else {
+                like $expected_val, qr/^$val$/,
+                    "$name - header $key like ok";
+            }
         }
     }
 
@@ -204,12 +229,18 @@ sub run_test_helper ($) {
         $expected =~ s/\$ServerPortForClient\b/$ServerPortForClient/g;
         #warn show_all_chars($content);
 
-        if ($NoLongString) {
-            is($content, $expected, "$name - response_body - response is expected");
+        if ($dry_run) {
+            SKIP: {
+                Test::More::skip("$name - tests skipped due to the lack of directive $dry_run", 1);
+            }
         } else {
-            is_string($content, $expected, "$name - response_body - response is expected");
+            if ($NoLongString) {
+                is($content, $expected, "$name - response_body - response is expected");
+            } else {
+                is_string($content, $expected, "$name - response_body - response is expected");
+            }
+            #is($content, $expected, "$name - response_body - response is expected");
         }
-        #is($content, $expected, "$name - response_body - response is expected");
 
     } elsif (defined $block->response_body_like) {
         my $content = $res->content;
@@ -221,7 +252,14 @@ sub run_test_helper ($) {
         $expected_pat =~ s/\$ServerPort\b/$ServerPort/g;
         $expected_pat =~ s/\$ServerPortForClient\b/$ServerPortForClient/g;
         my $summary = trim($content);
-        like($content, qr/$expected_pat/s, "$name - response_body_like - response is expected ($summary)");
+
+        if ($dry_run) {
+            SKIP: {
+                Test::More::skip("$name - tests skipped due to the lack of directive $dry_run", 1);
+            }
+        } else {
+            like($content, qr/$expected_pat/s, "$name - response_body_like - response is expected ($summary)");
+        }
     }
 }
 
@@ -438,9 +476,7 @@ agentzh (章亦春) C<< <agentzh@gmail.com> >>
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright (c) 2009, Taobao Inc., Alibaba Group (L<http://www.taobao.com>).
-
-Copyright (c) 2009, agentzh C<< <agentzh@gmail.com> >>.
+Copyright (c) 2009-2012, agentzh C<< <agentzh@gmail.com> >>.
 
 This module is licensed under the terms of the BSD license.
 
@@ -458,7 +494,7 @@ Redistributions in binary form must reproduce the above copyright notice, this l
 
 =item *
 
-Neither the name of the Taobao Inc. nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission. 
+Neither the name of the authors nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission. 
 
 =back
 
