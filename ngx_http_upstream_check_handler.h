@@ -76,6 +76,7 @@ typedef struct {
 typedef struct {
     ngx_uint_t generation;
 
+    ngx_uint_t checksum;
     ngx_uint_t state;
     ngx_atomic_t lock;
 
@@ -108,6 +109,7 @@ struct ngx_http_check_peer_s {
 
 struct ngx_http_check_peers_s {
     ngx_str_t                        check_shm_name;
+    ngx_uint_t                       checksum;
     ngx_array_t                      peers;
 
     ngx_http_check_peers_shm_t       *peers_shm;

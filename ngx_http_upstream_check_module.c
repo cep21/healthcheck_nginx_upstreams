@@ -3,6 +3,7 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 #include <ngx_http_upstream.h>
+#include <ngx_murmurhash.h>
 #include "ngx_http_upstream_check_module.h"
 #include "ngx_http_upstream_check_handler.h"
 
@@ -157,6 +158,9 @@ ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us,
     peer->conf = ucscf;
     peer->upstream_name = &us->host;
     peer->peer_addr = peer_addr;
+
+    peers->checksum += 
+        ngx_murmur_hash2(peer_addr->name.data, peer_addr->name.len);
 
     return peer->index;
 }
@@ -418,6 +422,8 @@ ngx_http_upstream_check_create_main_conf(ngx_conf_t *cf)
     if (ucmcf->peers == NULL) {
         return NULL;
     }
+
+    ucmcf->peers->checksum = 0;
 
     if (ngx_array_init(&ucmcf->peers->peers, cf->pool, 16,
                 sizeof(ngx_http_check_peer_t)) != NGX_OK)
