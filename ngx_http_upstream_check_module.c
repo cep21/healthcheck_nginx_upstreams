@@ -1,9 +1,9 @@
 
-#include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
-#include <ngx_http_upstream.h>
+#include <ngx_config.h>
 #include <ngx_murmurhash.h>
+#include <ngx_http_upstream.h>
 #include "ngx_http_upstream_check_module.h"
 #include "ngx_http_upstream_check_handler.h"
 
@@ -17,7 +17,7 @@ static char * ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf,
 
 static char * ngx_http_upstream_check_shm_size(ngx_conf_t *cf,
         ngx_command_t *cmd, void *conf);
-static char * ngx_http_upstream_check_status_set_status(ngx_conf_t *cf,
+static char * ngx_http_upstream_check_status(ngx_conf_t *cf,
         ngx_command_t *cmd, void *conf);
 
 static void *ngx_http_upstream_check_create_main_conf(ngx_conf_t *cf);
@@ -70,13 +70,14 @@ static ngx_command_t  ngx_http_upstream_check_commands[] = {
 
     { ngx_string("check_status"),
       NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
-      ngx_http_upstream_check_status_set_status,
+      ngx_http_upstream_check_status,
       0,
       0,
       NULL },
 
     ngx_null_command
 };
+
 
 static ngx_http_module_t  ngx_http_upstream_check_module_ctx = {
     NULL,                                      /* preconfiguration */
@@ -91,6 +92,7 @@ static ngx_http_module_t  ngx_http_upstream_check_module_ctx = {
     NULL,                                      /* create location configuration */
     NULL                                       /* merge location configuration */
 };
+
 
 ngx_module_t  ngx_http_upstream_check_module = {
     NGX_MODULE_V1,
@@ -131,7 +133,7 @@ ngx_http_get_check_type_conf(ngx_str_t *str)
 
 ngx_uint_t
 ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us,
-        ngx_peer_addr_t *peer_addr)
+                        ngx_peer_addr_t *peer_addr)
 {
     ngx_http_check_peer_t                *peer;
     ngx_http_check_peers_t               *peers;
@@ -148,10 +150,14 @@ ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us,
         return NGX_ERROR;
     }
 
-    ucmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_upstream_check_module);
+    ucmcf = ngx_http_conf_get_module_main_conf(cf,
+                                               ngx_http_upstream_check_module);
     peers = ucmcf->peers;
 
     peer = ngx_array_push(&peers->peers);
+    if (peer == NULL) {
+        return NGX_ERROR;
+    }
 
     ngx_memzero(peer, sizeof(ngx_http_check_peer_t));
 
@@ -160,7 +166,7 @@ ngx_http_check_add_peer(ngx_conf_t *cf, ngx_http_upstream_srv_conf_t *us,
     peer->upstream_name = &us->host;
     peer->peer_addr = peer_addr;
 
-    peers->checksum += 
+    peers->checksum +=
         ngx_murmur_hash2(peer_addr->name.data, peer_addr->name.len);
 
     return peer->index;
@@ -185,7 +191,7 @@ ngx_http_upstream_check(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     value = cf->args->elts;
 
     ucscf = ngx_http_conf_get_module_srv_conf(cf,
-            ngx_http_upstream_check_module);
+                                              ngx_http_upstream_check_module);
     if (ucscf == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -324,7 +330,8 @@ ngx_http_upstream_check_http_send(ngx_conf_t *cf, ngx_command_t *cmd, void *conf
 
 
 static char *
-ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd,
+                                          void *conf)
 {
     ngx_str_t                           *value;
     ngx_uint_t                           bit, i, m;
@@ -334,7 +341,8 @@ ngx_http_upstream_check_http_expect_alive(ngx_conf_t *cf, ngx_command_t *cmd, vo
     value = cf->args->elts;
     mask = ngx_check_http_expect_alive_masks;
 
-    ucscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_check_module);
+    ucscf = ngx_http_conf_get_module_srv_conf(cf,
+                                              ngx_http_upstream_check_module);
     bit = ucscf->code.status_alive;
 
     for (i = 1; i < cf->args->nelts; i++) {
@@ -396,7 +404,7 @@ ngx_http_upstream_check_shm_size(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
 static char *
-ngx_http_upstream_check_status_set_status(ngx_conf_t *cf,
+ngx_http_upstream_check_status(ngx_conf_t *cf,
         ngx_command_t *cmd, void *conf)
 {
     ngx_http_core_loc_conf_t                *clcf;

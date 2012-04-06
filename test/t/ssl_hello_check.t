@@ -35,7 +35,6 @@ __DATA__
     upstream test{
         server www.alipay.com:443;
 
-        #ip_hash;
         check interval=4000 rise=1 fall=5 timeout=2000 type=ssl_hello;
     }
 

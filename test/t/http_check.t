@@ -53,7 +53,15 @@ GET /
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
-        #ip_hash;
+
+        check interval=3000 rise=1 fall=5 timeout=2000 type=http;
+        check_http_send "GET / HTTP/1.0\r\n\r\n";
+        check_http_expect_alive http_2xx http_3xx;
+    }
+
+    upstream foo{
+        server www.taobao.com:80;
+        server www.taobao.com:81;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
         check_http_send "GET / HTTP/1.0\r\n\r\n";
@@ -74,7 +82,6 @@ GET /
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
-        #ip_hash;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
         check_http_send "GET /foo HTTP/1.0\r\n\r\n";
@@ -112,7 +119,6 @@ GET /
     upstream test{
         server blog.163.com:80;
         server blog.163.com:81;
-        #ip_hash;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
         check_http_send "GET / HTTP/1.0\r\n\r\n";
@@ -208,7 +214,6 @@ GET /
 GET /
 --- response_body_like: ^<(.*)>$
 
-
 === TEST 10: the http_check which does not use the upstream
 --- http_config
     upstream test{
@@ -245,10 +250,10 @@ GET /
     resolver 8.8.8.8;
 
 --- config
-        location / {
-            set $test "/";
-            proxy_pass http://blog.163.com$test;
-        }
+    location / {
+        set $test "/";
+        proxy_pass http://blog.163.com$test;
+    }
 
 --- request
 GET /

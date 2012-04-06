@@ -35,7 +35,6 @@ __DATA__
     upstream test{
         server blog.163.com:80;
 
-        #ip_hash;
         check interval=3000 rise=1 fall=5 timeout=1000;
     }
 
@@ -60,6 +59,23 @@ GET /
 --- config
     location / { 
         proxy_pass http://test;
+    }
+
+--- request
+GET /
+--- response_body_like: ^<(.*)>$
+
+=== TEST 3: the tcp_check test which don't use the checked upstream
+--- http_config
+    upstream test{
+        server blog.163.com:80;
+
+        check interval=3000 rise=1 fall=5 timeout=1000;
+    }
+
+--- config
+    location / {
+        proxy_pass http://blog.163.com;
     }
 
 --- request
