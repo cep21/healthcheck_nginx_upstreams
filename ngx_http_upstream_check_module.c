@@ -28,6 +28,7 @@ static char * ngx_http_upstream_check_init_srv_conf(ngx_conf_t *cf, void *conf);
 
 static ngx_int_t ngx_http_check_init_process(ngx_cycle_t *cycle);
 
+
 static ngx_conf_bitmask_t  ngx_check_http_expect_alive_masks[] = {
     { ngx_string("http_2xx"), NGX_CHECK_HTTP_2XX },
     { ngx_string("http_3xx"), NGX_CHECK_HTTP_3XX },

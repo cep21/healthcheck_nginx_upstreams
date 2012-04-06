@@ -21,6 +21,8 @@ static void ngx_http_check_recv_handler(ngx_event_t *event);
 
 static ngx_int_t ngx_http_check_http_init(ngx_http_check_peer_t *peer);
 static ngx_int_t ngx_http_check_http_parse(ngx_http_check_peer_t *peer);
+static ngx_int_t ngx_http_check_parse_status_line(ngx_http_check_ctx *ctx,
+        ngx_buf_t *b, ngx_http_status_t *status);
 static void ngx_http_check_http_reinit(ngx_http_check_peer_t *peer);
 
 static ngx_int_t ngx_http_check_ssl_hello_init(ngx_http_check_peer_t *peer);
@@ -542,117 +544,6 @@ ngx_http_check_peek_handler(ngx_event_t *event)
 }
 
 
-void
-http_field(void *data, const char *field,
-        size_t flen, const char *value, size_t vlen)
-{
-#if (NGX_DEBUG)
-    ngx_str_t str_field, str_value;
-
-    str_field.data = (u_char *) field;
-    str_field.len = flen;
-
-    str_value.data = (u_char *) value;
-    str_value.len = vlen;
-
-    ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
-                   "%V: %V", &str_field, &str_value);
-#endif
-}
-
-
-void
-http_version(void *data, const char *at, size_t length)
-{
-#if (NGX_DEBUG)
-    ngx_str_t str;
-
-    str.data = (u_char *) at;
-    str.len = length;
-
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
-                   "VERSION: \"%V\"", &str);
-#endif
-}
-
-
-void
-status_code(void *data, const char *at, size_t length)
-{
-    ngx_http_check_peer_t *peer = data;
-    ngx_http_check_ctx         *ctx;
-    http_parser               *hp;
-    int                        code;
-
-#if (NGX_DEBUG)
-    ngx_str_t                  str;
-    str.data = (u_char *) at;
-    str.len = length;
-
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
-                   "STATUS_CODE: \"%V\"", &str);
-#endif
-
-    ctx = peer->check_data;
-    hp = ctx->parser;
-
-    code = ngx_atoi((u_char*)at, length);
-
-    if (code >= 200 && code < 300) {
-        hp->status_code_n = NGX_CHECK_HTTP_2XX;
-    }
-    else if (code >= 300 && code < 400) {
-        hp->status_code_n = NGX_CHECK_HTTP_3XX;
-    }
-    else if (code >= 400 && code < 500) {
-        hp->status_code_n = NGX_CHECK_HTTP_4XX;
-    }
-    else if (code >= 500 && code < 600) {
-        hp->status_code_n = NGX_CHECK_HTTP_5XX;
-    }
-    else {
-        hp->status_code_n = NGX_CHECK_HTTP_ERR;
-    }
-}
-
-
-void
-reason_phrase(void *data, const char *at, size_t length)
-{
-#if (NGX_DEBUG)
-    ngx_str_t str;
-
-    str.data = (u_char *) at;
-    str.len = length;
-
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
-                   "REASON_PHRASE: \"%V\"", &str);
-#endif
-}
-
-
-void
-header_done(void *data, const char *at, size_t length)
-{
-    /* foo */
-}
-
-
-static void
-check_http_parser_init(http_parser *hp, void *data)
-{
-    hp->data = data;
-    hp->http_field = http_field;
-    hp->http_version = http_version;
-    hp->status_code = status_code;
-    hp->status_code_n = 0;
-    hp->reason_phrase = reason_phrase;
-    hp->header_done = header_done;
-
-    http_parser_init(hp);
-}
-
-
 static ngx_int_t
 ngx_http_check_http_init(ngx_http_check_peer_t *peer)
 {
@@ -668,12 +559,9 @@ ngx_http_check_http_init(ngx_http_check_peer_t *peer)
     ctx->recv.start = ctx->recv.pos = NULL;
     ctx->recv.end = ctx->recv.last = NULL;
 
-    ctx->parser = ngx_pcalloc(peer->pool, sizeof(http_parser));
-    if (ctx->parser == NULL) {
-        return NGX_ERROR;
-    }
+    ctx->state = 0;
 
-    check_http_parser_init(ctx->parser, peer);
+    ngx_memzero(&ctx->status, sizeof(ngx_http_status_t));
 
     return NGX_OK;
 }
@@ -682,37 +570,51 @@ ngx_http_check_http_init(ngx_http_check_peer_t *peer)
 static ngx_int_t
 ngx_http_check_http_parse(ngx_http_check_peer_t *peer)
 {
-    ssize_t                              n, offset, length;
-    http_parser                         *hp;
+    ngx_int_t                            rc, code, code_n;
     ngx_http_check_ctx                  *ctx;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
 
     ucscf = peer->conf;
     ctx = peer->check_data;
-    hp = ctx->parser;
 
     if ((ctx->recv.last - ctx->recv.pos) > 0) {
-        offset = ctx->recv.pos - ctx->recv.start;
-        length = ctx->recv.last - ctx->recv.start;
 
-        n = http_parser_execute(hp, (char *)ctx->recv.start, length, offset);
-        ctx->recv.pos += n;
+        rc = ngx_http_check_parse_status_line(ctx, &ctx->recv, &ctx->status);
+        
+        if (rc == NGX_AGAIN) {
+            return rc;
+        }
 
-        if (http_parser_finish(hp) == -1) {
+        if (rc == NGX_ERROR) {
             ngx_log_error(NGX_LOG_ERR, ngx_cycle->log, 0,
                           "http parse error with peer: %V, recv data: %s",
                           &peer->peer_addr->name, ctx->recv.start);
-            return NGX_ERROR;
+            return rc;
+        }
+
+        code = ctx->status.code;
+
+        if (code >= 200 && code < 300) {
+            code_n = NGX_CHECK_HTTP_2XX;
+        }
+        else if (code >= 300 && code < 400) {
+            code_n = NGX_CHECK_HTTP_3XX;
+        }
+        else if (code >= 400 && code < 500) {
+            code_n = NGX_CHECK_HTTP_4XX;
+        }
+        else if (code >= 500 && code < 600) {
+            code_n = NGX_CHECK_HTTP_5XX;
+        }
+        else {
+            code_n = NGX_CHECK_HTTP_ERR;
         }
 
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
-                       "http_parse: hp->status_code_n: %d, conf: %d",
-                       hp->status_code_n, ucscf->code.status_alive);
+                       "http_parse: code_n: %d, conf: %d",
+                       code_n, ucscf->code.status_alive);
 
-        if (hp->status_code_n == 0) {
-            return NGX_AGAIN;
-        }
-        else if (hp->status_code_n & ucscf->code.status_alive) {
+        if (code_n & ucscf->code.status_alive) {
             return NGX_OK;
         }
         else {
@@ -722,6 +624,212 @@ ngx_http_check_http_parse(ngx_http_check_peer_t *peer)
     else {
         return NGX_AGAIN;
     }
+
+    return NGX_OK;
+}
+
+
+/* This function copied from ngx_http_parse.c */
+static ngx_int_t
+ngx_http_check_parse_status_line(ngx_http_check_ctx *ctx, ngx_buf_t *b, 
+                                 ngx_http_status_t *status)
+{
+    u_char   ch;
+    u_char  *p;
+    enum {
+        sw_start = 0,
+        sw_H,
+        sw_HT,
+        sw_HTT,
+        sw_HTTP,
+        sw_first_major_digit,
+        sw_major_digit,
+        sw_first_minor_digit,
+        sw_minor_digit,
+        sw_status,
+        sw_space_after_status,
+        sw_status_text,
+        sw_almost_done
+    } state;
+
+    state = ctx->state;
+
+    for (p = b->pos; p < b->last; p++) {
+        ch = *p;
+
+        switch (state) {
+
+        /* "HTTP/" */
+        case sw_start:
+            switch (ch) {
+            case 'H':
+                state = sw_H;
+                break;
+            default:
+                return NGX_ERROR;
+            }
+            break;
+
+        case sw_H:
+            switch (ch) {
+            case 'T':
+                state = sw_HT;
+                break;
+            default:
+                return NGX_ERROR;
+            }
+            break;
+
+        case sw_HT:
+            switch (ch) {
+            case 'T':
+                state = sw_HTT;
+                break;
+            default:
+                return NGX_ERROR;
+            }
+            break;
+
+        case sw_HTT:
+            switch (ch) {
+            case 'P':
+                state = sw_HTTP;
+                break;
+            default:
+                return NGX_ERROR;
+            }
+            break;
+
+        case sw_HTTP:
+            switch (ch) {
+            case '/':
+                state = sw_first_major_digit;
+                break;
+            default:
+                return NGX_ERROR;
+            }
+            break;
+
+        /* the first digit of major HTTP version */
+        case sw_first_major_digit:
+            if (ch < '1' || ch > '9') {
+                return NGX_ERROR;
+            }
+
+            state = sw_major_digit;
+            break;
+
+        /* the major HTTP version or dot */
+        case sw_major_digit:
+            if (ch == '.') {
+                state = sw_first_minor_digit;
+                break;
+            }
+
+            if (ch < '0' || ch > '9') {
+                return NGX_ERROR;
+            }
+
+            break;
+
+        /* the first digit of minor HTTP version */
+        case sw_first_minor_digit:
+            if (ch < '0' || ch > '9') {
+                return NGX_ERROR;
+            }
+
+            state = sw_minor_digit;
+            break;
+
+        /* the minor HTTP version or the end of the request line */
+        case sw_minor_digit:
+            if (ch == ' ') {
+                state = sw_status;
+                break;
+            }
+
+            if (ch < '0' || ch > '9') {
+                return NGX_ERROR;
+            }
+
+            break;
+
+        /* HTTP status code */
+        case sw_status:
+            if (ch == ' ') {
+                break;
+            }
+
+            if (ch < '0' || ch > '9') {
+                return NGX_ERROR;
+            }
+
+            status->code = status->code * 10 + ch - '0';
+
+            if (++status->count == 3) {
+                state = sw_space_after_status;
+                status->start = p - 2;
+            }
+
+            break;
+
+        /* space or end of line */
+        case sw_space_after_status:
+            switch (ch) {
+            case ' ':
+                state = sw_status_text;
+                break;
+            case '.':                    /* IIS may send 403.1, 403.2, etc */
+                state = sw_status_text;
+                break;
+            case CR:
+                state = sw_almost_done;
+                break;
+            case LF:
+                goto done;
+            default:
+                return NGX_ERROR;
+            }
+            break;
+
+        /* any text until end of line */
+        case sw_status_text:
+            switch (ch) {
+            case CR:
+                state = sw_almost_done;
+
+                break;
+            case LF:
+                goto done;
+            }
+            break;
+
+        /* end of status line */
+        case sw_almost_done:
+            status->end = p - 1;
+            switch (ch) {
+            case LF:
+                goto done;
+            default:
+                return NGX_ERROR;
+            }
+        }
+    }
+
+    b->pos = p;
+    ctx->state = state;
+
+    return NGX_AGAIN;
+
+done:
+
+    b->pos = p + 1;
+
+    if (status->end == NULL) {
+        status->end = p;
+    }
+
+    ctx->state = sw_start;
 
     return NGX_OK;
 }
@@ -739,7 +847,9 @@ ngx_http_check_http_reinit(ngx_http_check_peer_t *peer)
 
     ctx->recv.pos = ctx->recv.last = ctx->recv.start;
 
-    check_http_parser_init(ctx->parser, peer);
+    ctx->state = 0;
+
+    ngx_memzero(&ctx->status, sizeof(ngx_http_status_t));
 }
 
 
@@ -1643,4 +1753,3 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
 
     return ngx_http_output_filter(r, &out);
 }
-

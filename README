@@ -15,8 +15,8 @@ Synopsis
         upstream cluster {
 
             # simple round-robin
-            server 127.0.0.1:3306;
-            server 127.0.0.1:1234;
+            server 192.168.0.1:80;
+            server 192.168.0.2:80;
 
             check interval=3000 rise=2 fall=5 timeout=1000;
 
@@ -30,17 +30,17 @@ Synopsis
         server {
             listen 80;
 
-                    location / {
-                            proxy_pass http://cluster;
-                    }
+            location / {
+                proxy_pass http://cluster;
+            }
 
-                    location /status {
-                            check_status;
+            location /status {
+                check_status;
 
-                            access_log   off;
-                            allow SOME.IP.ADD.RESS;
-                            deny all;
-                    }
+                access_log   off;
+                allow SOME.IP.ADD.RESS;
+                deny all;
+           }
         }
 
     }
@@ -146,12 +146,12 @@ Installation
     github (<http://github.com/yaoweibin/nginx_upstream_check_module>)
 
     Grab the nginx source code from nginx.org (<http://nginx.org/>), for
-    example, the version 0.7.67 (see nginx compatibility), and then build
+    example, the version 1.0.14 (see nginx compatibility), and then build
     the source with this module:
 
-        $ wget 'http://nginx.org/download/nginx-1.0.5.tar.gz'
-        $ tar -xzvf nginx-1.0.5.tar.gz
-        $ cd nginx-1.0.5/
+        $ wget 'http://nginx.org/download/nginx-1.0.14.tar.gz'
+        $ tar -xzvf nginx-1.0.14.tar.gz
+        $ cd nginx-1.0.14/
         $ patch -p1 < /path/to/nginx_http_upstream_check_module/check.patch
 
         $ ./configure --add-module=/path/to/nginx_http_upstream_check_module
@@ -169,7 +169,7 @@ Installation
         $ git clone git://github.com/gnosek/nginx-upstream-fair.git
         $ cd nginx-upstream-fair
         $ patch -p2 < /path/to/nginx_http_upstream_check_module/upstream_fair.patch
-        $ cd /path/to/nginx-1.0.5
+        $ cd /path/to/nginx-1.0.14
         $ ./configure --add-module=/path/to/nginx_http_upstream_check_module --add-module=/path/to/nginx-upstream-fair-module
         $ make
         $ make install
@@ -178,11 +178,6 @@ Compatibility
     *   My test bed is 0.7.67 and 0.8.49+.
 
 Notes
-    The http_response_parse.rl is ragel (<http://www.complang.org/ragel/>)
-    script , you can edit the script and compile it like this:
-
-        $ ragel -G2 http_response_parse.rl
-
 TODO
 Known Issues
     *   Developing
@@ -205,9 +200,9 @@ Copyright & License
 
     This module is licensed under the BSD license.
 
-    Copyright (C) 2010 by Weibin Yao <yaoweibin@gmail.com>.
+    Copyright (C) 2012 by Weibin Yao <yaoweibin@gmail.com>.
 
-    Copyright (C) 2010 by Matthieu Tourne.
+    Copyright (C) 2012 by Matthieu Tourne.
 
     All rights reserved.
 
