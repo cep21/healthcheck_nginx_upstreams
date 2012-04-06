@@ -329,6 +329,7 @@ ngx_http_check_add_timers(ngx_cycle_t *cycle)
 static void
 ngx_http_check_begin_handler(ngx_event_t *event)
 {
+    ngx_msec_t                            interval;
     ngx_http_check_peer_t                *peer;
     ngx_http_upstream_check_srv_conf_t   *ucscf;
 
@@ -346,18 +347,27 @@ ngx_http_check_begin_handler(ngx_event_t *event)
         return;
     }
 
+    interval = ngx_current_msec - peer->shm->access_time;
     ngx_log_debug5(NGX_LOG_DEBUG_HTTP, event->log, 0,
                    "http check begin handler index:%ud, owner: %d, "
-                   "ngx_pid: %ud, time:%ud, interal:%ud",
+                   "ngx_pid: %ud, interval:%ud, check_interval:%ud",
                    peer->index, peer->shm->owner,
-                   ngx_pid, (ngx_current_msec - peer->shm->access_time),
+                   ngx_pid, interval,
                    ucscf->check_interval);
 
     ngx_spinlock(&peer->shm->lock, ngx_pid, 1024);
 
-    if (((ngx_current_msec - peer->shm->access_time) >= ucscf->check_interval) &&
-            peer->shm->owner == NGX_INVALID_PID)
+    if ((interval >= ucscf->check_interval)
+            && peer->shm->owner == NGX_INVALID_PID)
     {
+        peer->shm->owner = ngx_pid;
+    }
+    else if (interval >= (ucscf->check_interval << 4)) {
+        /* If the check peer has been untouched for 4 times of 
+         * the check interval, activate current timer. 
+         * Sometimes, the checking process may be disappeared 
+         * in some circumstance, and the clean event will never 
+         * be triggered. */
         peer->shm->owner = ngx_pid;
     }
 
@@ -1503,7 +1513,14 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
     peer = peers->peers.elts;
 
     for (i = 0; i < peers->peers.nelts; i++) {
+
         peer_shm = &peers_shm->peers[i];
+
+        ngx_spinlock(&peer_shm->lock, ngx_pid, 1024);
+
+        /* This function may be triggered before the old stale 
+         * work process exits. The owner may stick to the old
+         * pid. */
         peer_shm->owner = NGX_INVALID_PID;
 
         if (!inherit) {
@@ -1518,6 +1535,8 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 
             peer_shm->down = ucscf->default_down;
         }
+
+        ngx_spinlock_unlock(&peer_shm->lock);
     }
 
     peers->peers_shm = peers_shm;
