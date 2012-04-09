@@ -82,7 +82,7 @@ typedef struct {
     ngx_atomic_t lock;
 
     /* store ngx_http_check_status_peer_t */
-    ngx_http_check_peer_shm_t peers[0];
+    ngx_http_check_peer_shm_t peers[1];
 } ngx_http_check_peers_shm_t;
 
 struct ngx_http_check_peer_s {

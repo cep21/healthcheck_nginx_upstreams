@@ -369,6 +369,7 @@ ngx_http_check_begin_handler(ngx_event_t *event)
          * in some circumstance, and the clean event will never 
          * be triggered. */
         peer->shm->owner = ngx_pid;
+        peer->shm->access_time = ngx_current_msec;
     }
 
     ngx_spinlock_unlock(&peer->shm->lock);
@@ -1467,6 +1468,7 @@ ngx_http_check_clear_all_events()
 static ngx_int_t
 ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 {
+    size_t                               size;
     ngx_uint_t                           i, inherit;
     ngx_slab_pool_t                     *shpool;
     ngx_http_check_peer_t               *peer;
@@ -1496,8 +1498,9 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
     }
 
     if (!inherit) {
-        peers_shm = ngx_slab_alloc(shpool, sizeof(*peers_shm) +
-                (peers->peers.nelts - 1) * sizeof(ngx_http_check_peer_shm_t));
+        size = sizeof(*peers_shm) + 
+               (peers->peers.nelts - 1) * sizeof(ngx_http_check_peer_shm_t);
+        peers_shm = ngx_slab_alloc(shpool, size);
 
         if (peers_shm == NULL) {
             ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
@@ -1505,6 +1508,8 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
                           "you should specify a larger size.");
             return NGX_ERROR;
         }
+
+        ngx_memzero(peers_shm, size);
     }
 
     peers_shm->generation = ngx_http_check_shm_generation;
@@ -1515,8 +1520,6 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
     for (i = 0; i < peers->peers.nelts; i++) {
 
         peer_shm = &peers_shm->peers[i];
-
-        ngx_spinlock(&peer_shm->lock, ngx_pid, 1024);
 
         /* This function may be triggered before the old stale 
          * work process exits. The owner may stick to the old
@@ -1535,8 +1538,6 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 
             peer_shm->down = ucscf->default_down;
         }
-
-        ngx_spinlock_unlock(&peer_shm->lock);
     }
 
     peers->peers_shm = peers_shm;
