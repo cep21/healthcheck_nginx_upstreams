@@ -55,8 +55,7 @@ static void ngx_http_check_finish_handler(ngx_event_t *event);
 static ngx_int_t ngx_http_check_need_exit();
 static void ngx_http_check_clear_all_events();
 
-static ngx_int_t ngx_http_check_get_shm_name(ngx_str_t *shm_name,
-        ngx_pool_t *pool);
+static ngx_int_t ngx_http_check_get_shm_name(ngx_str_t *shm_name);
 static ngx_int_t ngx_http_upstream_check_init_shm_zone(
         ngx_shm_zone_t *shm_zone, void *data);
 
@@ -415,7 +414,7 @@ ngx_http_check_connect_handler(ngx_event_t *event)
         return;
     }
 
-    /*NGX_OK or NGX_AGAIN*/
+    /* NGX_OK or NGX_AGAIN */
     c = peer->pc.connection;
     c->data = peer;
     c->log = peer->pc.log;
@@ -1103,7 +1102,7 @@ ngx_http_check_mysql_parse(ngx_http_check_peer_t *peer)
                    handshake->packet_number, handshake->protocol_version,
                    handshake->others);
 
-    /* The mysql greeting packet's serial number always begin with 0. */
+    /* The mysql greeting packet's serial number always begins with 0. */
     if (handshake->packet_number != 0x00) {
         return NGX_ERROR;
     }
@@ -1547,23 +1546,11 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 }
 
 
-#define SHM_NAME_LEN 256
-
-
 static ngx_int_t
-ngx_http_check_get_shm_name(ngx_str_t *shm_name, ngx_pool_t *pool)
+ngx_http_check_get_shm_name(ngx_str_t *shm_name)
 {
-    u_char    *last;
-
-    shm_name->data = ngx_palloc(pool, SHM_NAME_LEN);
-    if (shm_name->data == NULL) {
-        return NGX_ERROR;
-    }
-
-    last = ngx_snprintf(shm_name->data, SHM_NAME_LEN, "%s",
-                        "ngx_http_upstream_check");
-
-    shm_name->len = last - shm_name->data;
+    shm_name->data = (u_char *)"ngx_http_upstream_check";
+    shm_name->len = sizeof("ngx_http_upstream_check") - 1;
 
     return NGX_OK;
 }
@@ -1585,9 +1572,7 @@ ngx_http_upstream_check_init_shm(ngx_conf_t *cf, void *conf)
 
         shm_name = &ucmcf->peers->check_shm_name;
 
-        if (ngx_http_check_get_shm_name(shm_name, cf->pool) == NGX_ERROR) {
-            return NGX_CONF_ERROR;
-        }
+        ngx_http_check_get_shm_name(shm_name);
 
         /* the default check share memory size */
         shm_size = (umcf->upstreams.nelts + 1 )* ngx_pagesize;
@@ -1694,9 +1679,7 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
         }
     }
 
-    if (ngx_http_check_get_shm_name(&shm_name, r->pool) == NGX_ERROR) {
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-    }
+    ngx_http_check_get_shm_name(&shm_name);
 
     shm_zone = ngx_shared_memory_find((ngx_cycle_t *)ngx_cycle, &shm_name,
                                        &ngx_http_upstream_check_module);
