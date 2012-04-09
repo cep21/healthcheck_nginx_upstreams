@@ -1083,15 +1083,18 @@ ngx_http_check_mysql_init(ngx_http_check_peer_t *peer)
 }
 
 
+/* a rough check of mysql greeting responses */
 static ngx_int_t
 ngx_http_check_mysql_parse(ngx_http_check_peer_t *peer)
 {
+    size_t                         size;
     ngx_http_check_ctx            *ctx;
     mysql_handshake_init_t        *handshake;
 
     ctx = peer->check_data;
 
-    if (ctx->recv.last - ctx->recv.pos <= 0 ) {
+    size = ctx->recv.last - ctx->recv.pos;
+    if (size < sizeof(mysql_handshake_init_t)) {
         return NGX_AGAIN;
     }
 
@@ -1289,11 +1292,11 @@ ngx_http_check_ajp_parse(ngx_http_check_peer_t *peer)
 
     ctx = peer->check_data;
 
-    if ((size_t)(ctx->recv.last - ctx->recv.start) < sizeof(ajp_cpong_packet)) {
+    if ((size_t)(ctx->recv.last - ctx->recv.pos) < sizeof(ajp_cpong_packet)) {
         return NGX_AGAIN;
     }
 
-    p = ctx->recv.start;
+    p = ctx->recv.pos;
 
 #if (NGX_DEBUG)
     ajp_raw_packet_t              *ajp;
