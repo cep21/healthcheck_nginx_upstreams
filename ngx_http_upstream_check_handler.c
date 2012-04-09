@@ -32,14 +32,6 @@ static ngx_int_t ngx_http_check_mysql_init(ngx_http_check_peer_t *peer);
 static ngx_int_t ngx_http_check_mysql_parse(ngx_http_check_peer_t *peer);
 static void ngx_http_check_mysql_reinit(ngx_http_check_peer_t *peer);
 
-static ngx_int_t ngx_http_check_pop3_init(ngx_http_check_peer_t *peer);
-static ngx_int_t ngx_http_check_pop3_parse(ngx_http_check_peer_t *peer);
-static void ngx_http_check_pop3_reinit(ngx_http_check_peer_t *peer);
-
-static ngx_int_t ngx_http_check_imap_init(ngx_http_check_peer_t *peer);
-static ngx_int_t ngx_http_check_imap_parse(ngx_http_check_peer_t *peer);
-static void ngx_http_check_imap_reinit(ngx_http_check_peer_t *peer);
-
 static ngx_int_t ngx_http_check_ajp_init(ngx_http_check_peer_t *peer);
 static ngx_int_t ngx_http_check_ajp_parse(ngx_http_check_peer_t *peer);
 static void ngx_http_check_ajp_reinit(ngx_http_check_peer_t *peer);
@@ -149,28 +141,6 @@ check_conf_t  ngx_check_types[] = {
       ngx_http_check_mysql_init,
       ngx_http_check_mysql_parse,
       ngx_http_check_mysql_reinit,
-      1 },
-
-    { NGX_HTTP_CHECK_POP3,
-      "pop3",
-      ngx_null_string,
-      0,
-      ngx_http_check_send_handler,
-      ngx_http_check_recv_handler,
-      ngx_http_check_pop3_init,
-      ngx_http_check_pop3_parse,
-      ngx_http_check_pop3_reinit,
-      1 },
-
-    { NGX_HTTP_CHECK_IMAP,
-      "imap",
-      ngx_null_string,
-      0,
-      ngx_http_check_send_handler,
-      ngx_http_check_recv_handler,
-      ngx_http_check_imap_init,
-      ngx_http_check_imap_parse,
-      ngx_http_check_imap_reinit,
       1 },
 
     { NGX_HTTP_CHECK_AJP,
@@ -1116,143 +1086,6 @@ ngx_http_check_mysql_parse(ngx_http_check_peer_t *peer)
 
 static void
 ngx_http_check_mysql_reinit(ngx_http_check_peer_t *peer)
-{
-    ngx_http_check_ctx *ctx;
-
-    ctx = peer->check_data;
-
-    ctx->send.pos = ctx->send.start;
-    ctx->send.last = ctx->send.end;
-
-    ctx->recv.pos = ctx->recv.last = ctx->recv.start;
-}
-
-
-static ngx_int_t
-ngx_http_check_pop3_init(ngx_http_check_peer_t *peer)
-{
-    ngx_http_check_ctx                  *ctx;
-    ngx_http_upstream_check_srv_conf_t  *ucscf;
-
-    ctx = peer->check_data;
-    ucscf = peer->conf;
-
-    ctx->send.start = ctx->send.pos = (u_char *)ucscf->send.data;
-    ctx->send.end = ctx->send.last = ctx->send.start + ucscf->send.len;
-
-    ctx->recv.start = ctx->recv.pos = NULL;
-    ctx->recv.end = ctx->recv.last = NULL;
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_check_pop3_parse(ngx_http_check_peer_t *peer)
-{
-    u_char                         ch;
-    ngx_http_check_ctx            *ctx;
-
-    ctx = peer->check_data;
-
-    if (ctx->recv.last - ctx->recv.pos <= 0 ) {
-        return NGX_AGAIN;
-    }
-
-    ch = *(ctx->recv.start);
-
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
-                   "pop3_parse: packet_greeting \"%s\"", ctx->recv.start);
-
-    /* RFC 1939
-       There are currently two status indicators: positive ("+OK") and
-       negative ("-ERR").  Servers MUST send the "+OK" and "-ERR" in upper case.
-       */
-    if (ch != '+') {
-        return NGX_ERROR;
-    }
-
-    return NGX_OK;
-}
-
-
-static void
-ngx_http_check_pop3_reinit(ngx_http_check_peer_t *peer)
-{
-    ngx_http_check_ctx *ctx;
-
-    ctx = peer->check_data;
-
-    ctx->send.pos = ctx->send.start;
-    ctx->send.last = ctx->send.end;
-
-    ctx->recv.pos = ctx->recv.last = ctx->recv.start;
-}
-
-
-static ngx_int_t
-ngx_http_check_imap_init(ngx_http_check_peer_t *peer)
-{
-    ngx_http_check_ctx                  *ctx;
-    ngx_http_upstream_check_srv_conf_t  *ucscf;
-
-    ctx = peer->check_data;
-    ucscf = peer->conf;
-
-    ctx->send.start = ctx->send.pos = (u_char *)ucscf->send.data;
-    ctx->send.end = ctx->send.last = ctx->send.start + ucscf->send.len;
-
-    ctx->recv.start = ctx->recv.pos = NULL;
-    ctx->recv.end = ctx->recv.last = NULL;
-
-    return NGX_OK;
-}
-
-
-static ngx_int_t
-ngx_http_check_imap_parse(ngx_http_check_peer_t *peer)
-{
-    u_char                        *p;
-    ngx_http_check_ctx            *ctx;
-
-    ctx = peer->check_data;
-
-    if (ctx->recv.last - ctx->recv.pos <= 0 ) {
-        return NGX_AGAIN;
-    }
-
-    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
-                   "imap_parse: packet_greeting \"%s\"", ctx->recv.start);
-
-    /* RFC 3501
-       command         = tag SP (command-any / command-auth / command-nonauth /
-       command-select) CRLF
-    */
-
-    p = ctx->recv.start;
-    while (p < ctx->recv.last) {
-
-        if (*p == ' ') {
-            if ((p + 2) >= ctx->recv.last) {
-                return NGX_AGAIN;
-            }
-            else if (*(p + 1) == 'O' && *(p + 2) == 'K') {
-                return NGX_OK;
-            }
-            else {
-                return NGX_ERROR;
-            }
-        }
-
-        p++;
-    }
-
-    return NGX_AGAIN;
-}
-
-
-static void
-ngx_http_check_imap_reinit(ngx_http_check_peer_t *peer)
 {
     ngx_http_check_ctx *ctx;
 
