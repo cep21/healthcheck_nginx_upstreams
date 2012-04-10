@@ -34,6 +34,8 @@ __DATA__
 --- http_config
     upstream test{
         server blog.163.com:80;
+        server blog.163.com:81;
+        server blog.163.com:82;
 
         check interval=3000 rise=1 fall=5 timeout=1000;
     }
@@ -51,9 +53,11 @@ GET /
 --- http_config
     upstream test{
         server blog.163.com:80;
+        server blog.163.com:81;
+        server blog.163.com:82;
         ip_hash;
 
-        check interval=3000 rise=1 fall=5 timeout=1000;
+        check interval=3000 rise=1 fall=5 timeout=1000 type=tcp;
     }
 
 --- config
@@ -69,6 +73,8 @@ GET /
 --- http_config
     upstream test{
         server blog.163.com:80;
+        server blog.163.com:81;
+        server blog.163.com:82;
 
         check interval=3000 rise=1 fall=5 timeout=1000;
     }
