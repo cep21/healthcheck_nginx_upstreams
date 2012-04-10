@@ -52,7 +52,7 @@ Directives
   check
     syntax: *check interval=milliseconds [fall=count] [rise=count]
     [timeout=milliseconds] [default_down=true|false]
-    [type=tcp|ssl_hello|mysql|pop3|imap|ajp]*
+    [type=tcp|ssl_hello|mysql|ajp]*
 
     default: *none, if parameters omitted, default parameters are
     interval=30000 fall=5 rise=2 timeout=1000 default_down=true type=tcp*
@@ -89,14 +89,7 @@ Directives
         4.  *mysql* connects to the mysql server, recvives the greeting
             response to diagnose if the upstream server is alive.
 
-        5.  *pop3* recvives and parses the pop3 response to diagnose if the
-            upstream server is alive. The response begins with '+' should be
-            an OK response.
-
-        6.  *imap* connects to the imap server, recvives the greeting
-            response to diagnose if the upstream server is alive.
-
-        7.  *ajp* sends a AJP Cping packet, recvives and parses the AJP
+        5.  *ajp* sends a AJP Cping packet, recvives and parses the AJP
             Cpong response to diagnose if the upstream server is alive.
 
   check_http_send

@@ -1,4 +1,4 @@
-﻿﻿= Name =
+﻿﻿﻿= Name =
 
 '''nginx_http_upstream_check_module''' - support health check with Nginx
 
@@ -56,7 +56,7 @@ Add the support of health check with the upstream servers.
 
 == check ==
 
-'''syntax:''' ''check interval=milliseconds [fall=count] [rise=count] [timeout=milliseconds] [default_down=true|false] [type=tcp|ssl_hello|mysql|pop3|imap|ajp]''
+'''syntax:''' ''check interval=milliseconds [fall=count] [rise=count] [timeout=milliseconds] [default_down=true|false] [type=tcp|ssl_hello|mysql|ajp]''
 
 '''default:''' ''none, if parameters omitted, default parameters are interval=30000 fall=5 rise=2 timeout=1000 default_down=true type=tcp''
 
@@ -76,8 +76,6 @@ The parameters' meanings are:
 # ''ssl_hello'' sends a client ssl hello packet and receives the server ssl hello packet.
 # ''http'' sends a http requst packet, recvives and parses the http response to diagnose if the upstream server is alive.  
 # ''mysql'' connects to the mysql server, recvives the greeting response to diagnose if the upstream server is alive.  
-# ''pop3'' recvives and parses the pop3 response to diagnose if the upstream server is alive. The response begins with '+' should be an OK response.
-# ''imap'' connects to the imap server, recvives the greeting response to diagnose if the upstream server is alive.  
 # ''ajp'' sends a AJP Cping packet, recvives and parses the AJP Cpong response to diagnose if the upstream server is alive.  
 
 == check_http_send ==
