@@ -332,10 +332,10 @@ ngx_http_check_begin_handler(ngx_event_t *event)
         peer->shm->owner = ngx_pid;
     }
     else if (interval >= (ucscf->check_interval << 4)) {
-        /* If the check peer has been untouched for 4 times of 
-         * the check interval, activate current timer. 
-         * Sometimes, the checking process may be disappeared 
-         * in some circumstance, and the clean event will never 
+        /* If the check peer has been untouched for 4 times of
+         * the check interval, activate current timer.
+         * Sometimes, the checking process may be disappeared
+         * in some circumstance, and the clean event will never
          * be triggered. */
         peer->shm->owner = ngx_pid;
         peer->shm->access_time = ngx_current_msec;
@@ -1333,7 +1333,7 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
     }
 
     if (!inherit) {
-        size = sizeof(*peers_shm) + 
+        size = sizeof(*peers_shm) +
                (peers->peers.nelts - 1) * sizeof(ngx_http_check_peer_shm_t);
         peers_shm = ngx_slab_alloc(shpool, size);
 
@@ -1356,7 +1356,7 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 
         peer_shm = &peers_shm->peers[i];
 
-        /* This function may be triggered before the old stale 
+        /* This function may be triggered before the old stale
          * work process exits. The owner may stick to the old
          * pid. */
         peer_shm->owner = NGX_INVALID_PID;
