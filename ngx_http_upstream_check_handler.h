@@ -60,26 +60,31 @@ typedef struct {
 #define NGX_HTTP_CHECK_ALL_DONE         0x0008
 
 typedef struct {
-    ngx_pid_t  owner;
+    ngx_pid_t    owner;
 
-    ngx_msec_t access_time;
+    ngx_msec_t   access_time;
 
-    ngx_uint_t fall_count;
-    ngx_uint_t rise_count;
+    ngx_uint_t   fall_count;
+    ngx_uint_t   rise_count;
 
     ngx_atomic_t lock;
     ngx_atomic_t busyness;
     ngx_atomic_t down;
 
-    ngx_uint_t access_count;
+    ngx_uint_t   access_count;
+
+    struct sockaddr  *sockaddr;
+    socklen_t         socklen;
 } ngx_http_check_peer_shm_t;
 
 typedef struct {
-    ngx_uint_t generation;
+    ngx_uint_t   generation;
 
-    ngx_uint_t checksum;
-    ngx_uint_t state;
+    ngx_uint_t   checksum;
+    ngx_uint_t   state;
     ngx_atomic_t lock;
+
+    ngx_uint_t   number;
 
     /* store ngx_http_check_status_peer_t */
     ngx_http_check_peer_shm_t peers[1];

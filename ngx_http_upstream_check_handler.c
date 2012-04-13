@@ -47,7 +47,17 @@ static void ngx_http_check_finish_handler(ngx_event_t *event);
 static ngx_int_t ngx_http_check_need_exit();
 static void ngx_http_check_clear_all_events();
 
-static ngx_int_t ngx_http_check_get_shm_name(ngx_str_t *shm_name);
+
+#define SHM_NAME_LEN 256
+
+static ngx_int_t ngx_http_check_get_shm_name(ngx_str_t *shm_name,
+        ngx_pool_t *pool, ngx_uint_t generation);
+static ngx_shm_zone_t * ngx_shared_memory_find(ngx_cycle_t *cycle,
+        ngx_str_t *name, void *tag);
+static ngx_http_check_peer_shm_t * ngx_http_check_find_shm_peer(
+        ngx_http_check_peers_shm_t *peers_shm, ngx_addr_t *addr);
+static void ngx_http_check_set_shm_peer(ngx_http_check_peer_shm_t *peer_shm,
+        ngx_http_check_peer_shm_t *opeer_shm, ngx_uint_t init_down);
 static ngx_int_t ngx_http_upstream_check_init_shm_zone(
         ngx_shm_zone_t *shm_zone, void *data);
 
@@ -282,8 +292,8 @@ ngx_http_check_add_timers(ngx_cycle_t *cycle)
         peer[i].reinit = cf->reinit;
 
         /*
-         * Default delay interval is 1 second.
-         * I don't want to trigger the check event too close.
+         * I add a random start time. I don't want to trigger the check
+         * event too close at the beginning.
          * */
         delay = ucscf->check_interval > 1000 ? ucscf->check_interval : 1000;
         t = ngx_random() % delay;
@@ -298,11 +308,23 @@ ngx_http_check_add_timers(ngx_cycle_t *cycle)
 static void
 ngx_http_check_begin_handler(ngx_event_t *event)
 {
-    ngx_msec_t                            interval;
-    ngx_http_check_peer_t                *peer;
-    ngx_http_upstream_check_srv_conf_t   *ucscf;
+    ngx_msec_t                          interval;
+    ngx_http_check_peer_t              *peer;
+    ngx_http_check_peers_t             *peers;
+    ngx_http_check_peers_shm_t         *peers_shm;
+    ngx_http_upstream_check_srv_conf_t *ucscf;
 
     if (ngx_http_check_need_exit()) {
+        return;
+    }
+
+    peers = check_peers_ctx;
+    if (peers == NULL) {
+        return;
+    }
+
+    peers_shm = peers->peers_shm;
+    if (peers_shm == NULL) {
         return;
     }
 
@@ -325,6 +347,11 @@ ngx_http_check_begin_handler(ngx_event_t *event)
                    ucscf->check_interval);
 
     ngx_spinlock(&peer->shm->lock, ngx_pid, 1024);
+
+    if (peers_shm->generation != ngx_http_check_shm_generation) {
+        ngx_spinlock_unlock(&peer->shm->lock);
+        return;
+    }
 
     if ((interval >= ucscf->check_interval)
             && peer->shm->owner == NGX_INVALID_PID)
@@ -1212,11 +1239,7 @@ ngx_http_check_clean_event(ngx_http_check_peer_t *peer)
         peer->reinit(peer);
     }
 
-    ngx_spinlock(&peer->shm->lock, ngx_pid, 1024);
-
     peer->shm->owner = NGX_INVALID_PID;
-
-    ngx_spinlock_unlock(&peer->shm->lock);
 }
 
 
@@ -1304,44 +1327,69 @@ static ngx_int_t
 ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 {
     size_t                               size;
-    ngx_uint_t                           i, inherit;
+    ngx_str_t                            oshm_name;
+    ngx_uint_t                           i, same, number;
+    ngx_shm_zone_t                      *oshm_zone;
     ngx_slab_pool_t                     *shpool;
     ngx_http_check_peer_t               *peer;
     ngx_http_check_peers_t              *peers;
-    ngx_http_check_peer_shm_t           *peer_shm;
-    ngx_http_check_peers_shm_t          *peers_shm;
+    ngx_http_check_peer_shm_t           *peer_shm, *opeer_shm;
+    ngx_http_check_peers_shm_t          *peers_shm, *opeers_shm;
     ngx_http_upstream_check_srv_conf_t  *ucscf;
 
-    inherit = 0;
+    opeers_shm = NULL;
+    peers_shm = NULL;
+
+    same = 0;
     peers = check_peers_ctx;
 
-    if (peers == NULL || peers->peers.nelts == 0) {
+    number =  peers->peers.nelts;
+    shpool = (ngx_slab_pool_t *) shm_zone->shm.addr;
+
+    if (peers == NULL || number == 0) {
         return NGX_OK;
     }
 
-    shpool = (ngx_slab_pool_t *) shm_zone->shm.addr;
-
     if (data) {
-        peers_shm = data;
+        opeers_shm = data;
 
-        if (peers_shm->checksum == peers->checksum) {
-            inherit = 1;
-        }
-        else {
-            ngx_slab_free(shpool, data);
+        if (opeers_shm->number == number
+                && opeers_shm->checksum == peers->checksum) {
+
+            peers_shm = data;
+            same = 1;
         }
     }
 
-    if (!inherit) {
+    if (!same) {
+
+        if (ngx_http_check_shm_generation > 1) {
+
+            ngx_http_check_get_shm_name(&oshm_name, ngx_cycle->pool,
+                                        ngx_http_check_shm_generation - 1);
+
+            /* The global variable ngx_cycle still points to the old version */
+            oshm_zone = ngx_shared_memory_find((ngx_cycle_t *)ngx_cycle,
+                                               &oshm_name,
+                                               &ngx_http_upstream_check_module);
+
+            if (oshm_zone) {
+                opeers_shm = oshm_zone->data;
+
+                ngx_log_debug2(NGX_LOG_DEBUG_HTTP, shm_zone->shm.log, 0,
+                               "http upstream check, find oshm_zone:%p, "
+                               "opeers_shm: %p",
+                               oshm_zone, opeers_shm);
+            }
+        }
+
         size = sizeof(*peers_shm) +
-               (peers->peers.nelts - 1) * sizeof(ngx_http_check_peer_shm_t);
+               (number - 1) * sizeof(ngx_http_check_peer_shm_t);
+
         peers_shm = ngx_slab_alloc(shpool, size);
 
         if (peers_shm == NULL) {
-            ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
-                          "http upstream check_shm_size is too small, "
-                          "you should specify a larger size.");
-            return NGX_ERROR;
+            goto failure;
         }
 
         ngx_memzero(peers_shm, size);
@@ -1349,10 +1397,11 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 
     peers_shm->generation = ngx_http_check_shm_generation;
     peers_shm->checksum = peers->checksum;
+    peers_shm->number = number;
 
     peer = peers->peers.elts;
 
-    for (i = 0; i < peers->peers.nelts; i++) {
+    for (i = 0; i < number; i++) {
 
         peer_shm = &peers_shm->peers[i];
 
@@ -1361,32 +1410,119 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
          * pid. */
         peer_shm->owner = NGX_INVALID_PID;
 
-        if (!inherit) {
-            ucscf = peer[i].conf;
-
-            peer_shm->access_time = 0;
-            peer_shm->access_count = 0;
-
-            peer_shm->fall_count = 0;
-            peer_shm->rise_count = 0;
-            peer_shm->busyness = 0;
-
-            peer_shm->down = ucscf->default_down;
+        if (same) {
+            continue;
         }
+
+        peer_shm->socklen = peer[i].peer_addr->socklen;
+        peer_shm->sockaddr = ngx_slab_alloc(shpool, peer_shm->socklen);
+        if (peer_shm->sockaddr == NULL) {
+            goto failure;
+        }
+
+        ngx_memcpy(peer_shm->sockaddr, peer[i].peer_addr->sockaddr,
+                   peer_shm->socklen);
+
+        if (opeers_shm) {
+
+            opeer_shm = ngx_http_check_find_shm_peer(opeers_shm,
+                                                     peer[i].peer_addr);
+            if (opeer_shm) {
+                ngx_log_debug1(NGX_LOG_DEBUG_HTTP, shm_zone->shm.log, 0,
+                        "http upstream check: inherit opeer:%V",
+                        &peer[i].peer_addr->name);
+
+                ngx_http_check_set_shm_peer(peer_shm, opeer_shm, 0);
+
+                continue;
+            }
+        }
+
+        ucscf = peer[i].conf;
+        ngx_http_check_set_shm_peer(peer_shm, NULL, ucscf->default_down);
     }
 
     peers->peers_shm = peers_shm;
     shm_zone->data = peers_shm;
 
     return NGX_OK;
+
+failure:
+    ngx_log_error(NGX_LOG_EMERG, shm_zone->shm.log, 0,
+                  "http upstream check_shm_size is too small, "
+                  "you should specify a larger size.");
+    return NGX_ERROR;
+}
+
+
+static ngx_http_check_peer_shm_t *
+ngx_http_check_find_shm_peer(ngx_http_check_peers_shm_t *peers_shm,
+                             ngx_addr_t *addr)
+{
+    ngx_uint_t                    i;
+    ngx_http_check_peer_shm_t    *peer_shm;
+
+    for (i = 0; i < peers_shm->number; i++) {
+
+        peer_shm = &peers_shm->peers[i];
+
+        if (addr->socklen != peer_shm->socklen) {
+            continue;
+        }
+
+        if (ngx_memcmp(addr->sockaddr, peer_shm->sockaddr, addr->socklen) == 0) {
+            return peer_shm;
+        }
+    }
+
+    return NULL;
+}
+
+
+static void
+ngx_http_check_set_shm_peer(ngx_http_check_peer_shm_t *peer_shm,
+                            ngx_http_check_peer_shm_t *opeer_shm,
+                            ngx_uint_t init_down)
+{
+
+    if (opeer_shm) {
+        peer_shm->access_time  = opeer_shm->access_time;
+        peer_shm->access_count = opeer_shm->access_count;
+
+        peer_shm->fall_count   = opeer_shm->fall_count;
+        peer_shm->rise_count   = opeer_shm->rise_count;
+        peer_shm->busyness     = opeer_shm->busyness;
+
+        peer_shm->down         = opeer_shm->down;
+    }
+    else{
+        peer_shm->access_time  = 0;
+        peer_shm->access_count = 0;
+
+        peer_shm->fall_count   = 0;
+        peer_shm->rise_count   = 0;
+        peer_shm->busyness     = 0;
+
+        peer_shm->down         = init_down;
+    }
 }
 
 
 static ngx_int_t
-ngx_http_check_get_shm_name(ngx_str_t *shm_name)
+ngx_http_check_get_shm_name(ngx_str_t *shm_name, ngx_pool_t *pool,
+                            ngx_uint_t generation)
 {
-    shm_name->data = (u_char *)"ngx_http_upstream_check";
-    shm_name->len = sizeof("ngx_http_upstream_check") - 1;
+    u_char    *last;
+
+    shm_name->data = ngx_palloc(pool, SHM_NAME_LEN);
+    if (shm_name->data == NULL) {
+        return NGX_ERROR;
+    }
+
+    last = ngx_snprintf(shm_name->data, SHM_NAME_LEN, "%s#%ui",
+                        "ngx_http_upstream_check", generation);
+
+    shm_name->len = last - shm_name->data;
 
     return NGX_OK;
 }
@@ -1404,14 +1540,16 @@ ngx_http_upstream_check_init_shm(ngx_conf_t *cf, void *conf)
     umcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_upstream_module);
 
     if (ucmcf->peers->peers.nelts > 0) {
+
         ngx_http_check_shm_generation++;
 
         shm_name = &ucmcf->peers->check_shm_name;
 
-        ngx_http_check_get_shm_name(shm_name);
+        ngx_http_check_get_shm_name(shm_name, cf->pool,
+                                    ngx_http_check_shm_generation);
 
-        /* the default check share memory size */
-        shm_size = (umcf->upstreams.nelts + 1 )* ngx_pagesize;
+        /* the default check share memory size, 1M */
+        shm_size = 1 * 1024 * 1024;
 
         shm_size = shm_size < ucmcf->check_shm_size ?
                    ucmcf->check_shm_size : shm_size;
@@ -1483,10 +1621,8 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
 {
     ngx_int_t                       rc;
     ngx_buf_t                      *b;
-    ngx_str_t                       shm_name;
     ngx_uint_t                      i;
     ngx_chain_t                     out;
-    ngx_shm_zone_t                 *shm_zone;
     ngx_http_check_peer_t          *peer;
     ngx_http_check_peers_t         *peers;
     ngx_http_check_peer_shm_t      *peer_shm;
@@ -1515,22 +1651,12 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
         }
     }
 
-    ngx_http_check_get_shm_name(&shm_name);
-
-    shm_zone = ngx_shared_memory_find((ngx_cycle_t *)ngx_cycle, &shm_name,
-                                       &ngx_http_upstream_check_module);
-
-    if (shm_zone == NULL || shm_zone->data == NULL) {
-
-        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
-                      "[http upstream check] can not find the "
-                      "shared memory zone \"%V\" ", &shm_name);
-
-        return NGX_HTTP_INTERNAL_SERVER_ERROR;
-    }
-
     peers = check_peers_ctx;
     if (peers == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                      "[http upstream check] can not find the check servers, "
+                      "have you added the check servers? ");
+
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
@@ -1556,7 +1682,7 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
             "</head>\n"
             "<body>\n"
             "<h1>Nginx http upstream check status</h1>\n"
-            "<h2>Check upstream server number: %ui, shm_name: %V</h2>\n"
+            "<h2>Check upstream server number: %ui, generation: %ui</h2>\n"
             "<table style=\"background-color:white\" cellspacing=\"0\" "
             "       cellpadding=\"3\" border=\"1\">\n"
             "  <tr bgcolor=\"#C0C0C0\">\n"
@@ -1568,7 +1694,7 @@ ngx_http_upstream_check_status_handler(ngx_http_request_t *r)
             "    <th>Fall counts</th>\n"
             "    <th>Check type</th>\n"
             "  </tr>\n",
-        peers->peers.nelts, &shm_name);
+            peers->peers.nelts, ngx_http_check_shm_generation);
 
     for (i = 0; i < peers->peers.nelts; i++) {
         b->last = ngx_sprintf(b->last,

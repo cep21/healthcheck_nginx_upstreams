@@ -116,13 +116,13 @@ Directives
   check_shm_size
     syntax: *check_shm_size size*
 
-    default: *(number_of_checked_upstream_blocks + 1) * pagesize*
+    default: *1m*
 
     context: *http*
 
-    description: If you store hundreds of serveres in one upstream block,
-    the shared memory for health check may be not enough, you can enlarged
-    it by this directive.
+    description: Default size is one megabytes. If you check thousands of
+    serveres, the shared memory for health check may be not enough, you can
+    enlarge it with this directive.
 
   check_status
     syntax: *check_status*
@@ -132,7 +132,7 @@ Directives
     context: *location*
 
     description: Display the health checking servers' status by HTTP. This
-    directive is set in the http block.
+    directive should be set in the http block.
 
 Installation
     Download the latest version of the release tarball of this module from

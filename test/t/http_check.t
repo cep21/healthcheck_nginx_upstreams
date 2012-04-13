@@ -242,7 +242,7 @@ GET /
         server blog.163.com:81;
         ip_hash;
 
-        check interval=3000 rise=4 fall=5 timeout=2000 type=http;
+        check interval=3000 rise=1 fall=5 timeout=2000 type=http;
         check_http_send "GET / HTTP/1.0\r\n\r\n";
         check_http_expect_alive http_2xx http_3xx;
     }
