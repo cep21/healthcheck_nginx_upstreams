@@ -144,6 +144,11 @@ Installation
         $ make
         $ make install
 
+Note
+    If you use nginx-1.2.1+ or nginx-1.3.0+, the nginx upstream round robin
+    module changed greatly. You should use the patch named
+    'check_1.2.1+.patch'.
+
     The patch just adds the support for Round-Robin and Ip_hash upstream
     module. But it's easy to expand my module to other upstream modules. See
     the patch for detail.
