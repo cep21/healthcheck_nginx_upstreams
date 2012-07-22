@@ -75,13 +75,13 @@ Directives
         2.  *ssl_hello* sends a client ssl hello packet and receives the
             server ssl hello packet.
 
-        3.  *http* sends a http requst packet, recvives and parses the http
+        3.  *http* sends a http request packet, receives and parses the http
             response to diagnose if the upstream server is alive.
 
-        4.  *mysql* connects to the mysql server, recvives the greeting
+        4.  *mysql* connects to the mysql server, receives the greeting
             response to diagnose if the upstream server is alive.
 
-        5.  *ajp* sends a AJP Cping packet, recvives and parses the AJP
+        5.  *ajp* sends a AJP Cping packet, receives and parses the AJP
             Cpong response to diagnose if the upstream server is alive.
 
   check_http_send
@@ -113,7 +113,7 @@ Directives
     context: *http*
 
     description: Default size is one megabytes. If you check thousands of
-    serveres, the shared memory for health check may be not enough, you can
+    servers, the shared memory for health check may be not enough, you can
     enlarge it with this directive.
 
   check_status
@@ -145,13 +145,16 @@ Installation
         $ make install
 
 Note
-    If you use nginx-1.2.1+ or nginx-1.3.0+, the nginx upstream round robin
+    If you use nginx-1.2.1 or nginx-1.3.0, the nginx upstream round robin
     module changed greatly. You should use the patch named
-    'check_1.2.1+.patch'.
+    'check_1.2.1.patch'.
 
-    The patch just adds the support for Round-Robin and Ip_hash upstream
-    module. But it's easy to expand my module to other upstream modules. See
-    the patch for detail.
+    If you use nginx-1.2.2+ or nginx-1.3.1+, It added the upstream
+    least_conn module. You should use the patch named 'check_1.2.2+.patch'.
+
+    The patch just adds the support for the official Round-Robin, Ip_hash
+    and least_conn upstream module. But it's easy to expand my module to
+    other upstream modules. See the patch for detail.
 
     If you want to add the support for upstream fair module, you can do it
     like this:
