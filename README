@@ -164,6 +164,19 @@ Note
         $ make
         $ make install
 
+    If you want to add the support for nginx sticky module, you can do it
+    like this:
+
+        $ svn checkout http://nginx-sticky-module.googlecode.com/svn/trunk/ nginx-sticky-module
+        $ cd nginx-sticky-module
+        $ patch -p0 < /path/to/nginx_http_upstream_check_module/nginx-sticky-module.patch
+        $ cd /path/to/nginx-1.0.14
+        $ ./configure --add-module=/path/to/nginx_http_upstream_check_module --add-module=/path/to/nginx-sticky-module
+        $ make
+        $ make install
+
+    Note that, the nginx-sticky-module also needs the original check.patch.
+
 Compatibility
     *   My test bed is 0.7.67 and 0.8.49+.
 
