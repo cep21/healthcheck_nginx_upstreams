@@ -90,6 +90,8 @@ GET /
 --- response_body_like: ^<(.*)>[\r\n\s\t]*$
 
 === TEST 4: the ssl_hello_check test with least_conn
+--- skip_nginx
+2: < 1.2.2
 --- http_config
     upstream test{
         server www.alipay.com:443;

@@ -260,6 +260,8 @@ GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 12: the http_check test-single server, least conn
+--- skip_nginx
+2: < 1.2.2
 --- http_config
     upstream test{
         server blog.163.com:80;
@@ -280,6 +282,8 @@ GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 13: the http_check test-multi_server, least conn
+--- skip_nginx
+2: < 1.2.2
 --- http_config
     upstream test{
         server blog.163.com:80;
@@ -301,6 +305,8 @@ GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 14: the http_check test, least conn
+--- skip_nginx
+2: < 1.2.2
 --- http_config
     upstream test{
         server blog.163.com:80;
@@ -323,6 +329,8 @@ GET /
 --- response_body_like: ^.*$
 
 === TEST 15: the http_check without check directive, least conn
+--- skip_nginx
+2: < 1.2.2
 --- http_config
     upstream test{
         server blog.163.com:80;

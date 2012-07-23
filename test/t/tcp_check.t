@@ -89,6 +89,8 @@ GET /
 --- response_body_like: ^<(.*)>$
 
 === TEST 3: the tcp_check test with least_conn;
+--- skip_nginx
+2: < 1.2.2
 --- http_config
     upstream test{
         server blog.163.com:80;
