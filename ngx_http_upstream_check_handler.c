@@ -71,7 +71,7 @@ static ngx_int_t ngx_http_upstream_check_init_shm_zone(
  *
  * Some codes copied from HAProxy 1.4.1
  */
-const char sslv3_client_hello_pkt[] = {
+static const char sslv3_client_hello_pkt[] = {
     "\x16"                /* ContentType         : 0x16 = Hanshake           */
     "\x03\x00"            /* ProtocolVersion     : 0x0300 = SSLv3            */
     "\x00\x79"            /* ContentLength       : 0x79 bytes after this one */
@@ -104,8 +104,8 @@ const char sslv3_client_hello_pkt[] = {
 #define AJP_CPING  0x0a
 #define AJP_CPONG  0x09
 
-const char ajp_cping_packet[] ={0x12, 0x34, 0x00, 0x01, AJP_CPING, 0x00};
-const char ajp_cpong_packet[] ={0x41, 0x42, 0x00, 0x01, AJP_CPONG};
+static const char ajp_cping_packet[] ={0x12, 0x34, 0x00, 0x01, AJP_CPING, 0x00};
+static const char ajp_cpong_packet[] ={0x41, 0x42, 0x00, 0x01, AJP_CPONG};
 
 
 check_conf_t  ngx_check_types[] = {
