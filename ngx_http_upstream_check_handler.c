@@ -1297,6 +1297,9 @@ ngx_http_check_clear_all_events()
         return;
     }
 
+    ngx_log_error(NGX_LOG_NOTICE, ngx_cycle->log, 0,
+                  "clear all the events on %P ", ngx_pid);
+
     has_cleared = 1;
 
     peers = check_peers_ctx;
@@ -1309,10 +1312,10 @@ ngx_http_check_clear_all_events()
         }
 
         /* Be careful, The shared memory may have been freed after reload */
-        if (peer->check_timeout_ev.timer_set) {
-            c = peer->pc.connection;
+        if (peer[i].check_timeout_ev.timer_set) {
+            c = peer[i].pc.connection;
             ngx_close_connection(c);
-            ngx_del_timer(&peer->check_timeout_ev);
+            ngx_del_timer(&peer[i].check_timeout_ev);
         }
 
         if (peer[i].pool != NULL) {
