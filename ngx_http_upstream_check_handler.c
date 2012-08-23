@@ -1327,7 +1327,7 @@ static ngx_int_t
 ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 {
     size_t                               size;
-    ngx_str_t                            oshm_name;
+    ngx_str_t                            oshm_name = ngx_null_string;
     ngx_uint_t                           i, same, number;
     ngx_shm_zone_t                      *oshm_zone;
     ngx_slab_pool_t                     *shpool;
