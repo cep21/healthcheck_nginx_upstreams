@@ -44,7 +44,7 @@ Directives
   check
     syntax: *check interval=milliseconds [fall=count] [rise=count]
     [timeout=milliseconds] [default_down=true|false]
-    [type=tcp|ssl_hello|mysql|ajp]*
+    [type=tcp|http|ssl_hello|mysql|ajp]*
 
     default: *none, if parameters omitted, default parameters are
     interval=30000 fall=5 rise=2 timeout=1000 default_down=true type=tcp*
