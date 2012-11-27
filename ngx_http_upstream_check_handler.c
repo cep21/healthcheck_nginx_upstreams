@@ -340,6 +340,9 @@ ngx_http_check_begin_handler(ngx_event_t *event)
         (peer->pc.connection != NULL) ||
         (peer->check_timeout_ev.timer_set)) {
 
+        return;
+    }
+
     interval = ngx_current_msec - peer->shm->access_time;
     ngx_log_debug5(NGX_LOG_DEBUG_HTTP, event->log, 0,
                    "http check begin handler index: %ud, owner: %P, "
