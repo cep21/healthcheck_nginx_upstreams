@@ -152,6 +152,9 @@ Note
     If you use nginx-1.2.2+ or nginx-1.3.1+, It added the upstream
     least_conn module. You should use the patch named 'check_1.2.2+.patch'.
 
+    If you use nginx-1.2.6+ or nginx-1.3.9+, It adjusted the round robin
+    module. You should use the patch named 'check_1.2.6+.patch'.
+
     The patch just adds the support for the official Round-Robin, Ip_hash
     and least_conn upstream module. But it's easy to expand my module to
     other upstream modules. See the patch for detail.
