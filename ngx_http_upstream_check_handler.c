@@ -659,6 +659,12 @@ ngx_http_check_recv_handler(ngx_event_t *event)
     switch (rc) {
 
     case NGX_AGAIN:
+        /* The peer has closed its half side of the connection. */
+        if (size == 0) {
+            ngx_http_check_status_update(peer, 0);
+            break;
+        }
+
         return;
 
     case NGX_ERROR:
