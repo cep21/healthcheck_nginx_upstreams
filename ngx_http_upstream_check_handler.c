@@ -544,10 +544,10 @@ ngx_http_check_send_handler(ngx_event_t *event)
                        size, ctx->send.last - ctx->send.pos);
 #endif
 
-        if (size >= 0) {
+        if (size > 0) {
             ctx->send.pos += size;
 
-        } else if (size == NGX_AGAIN) {
+        } else if (size == 0 || size == NGX_AGAIN) {
             return;
 
         } else {
