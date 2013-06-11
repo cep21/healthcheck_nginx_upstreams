@@ -46,7 +46,7 @@ __DATA__
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 2: the http_check test-multi_server
 --- http_config
@@ -75,7 +75,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 3: the http_check test
 --- http_config
@@ -112,7 +112,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 5: the http_check which does not use the upstream
 --- http_config
@@ -132,7 +132,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 6: the http_check test-single server
 --- http_config
@@ -152,7 +152,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 7: the http_check test-multi_server
 --- http_config
@@ -173,7 +173,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 8: the http_check test
 --- http_config
@@ -212,7 +212,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 10: the http_check which does not use the upstream
 --- http_config
@@ -233,7 +233,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 11: the http_check which does not use the upstream, with variable
 --- http_config
@@ -257,7 +257,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 12: the http_check test-single server, least conn
 --- skip_nginx
@@ -279,7 +279,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 13: the http_check test-multi_server, least conn
 --- skip_nginx
@@ -302,7 +302,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 14: the http_check test, least conn
 --- skip_nginx
@@ -345,4 +345,4 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$

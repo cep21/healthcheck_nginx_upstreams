@@ -47,7 +47,7 @@ __DATA__
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 2: the tcp_check test with ip_hash
 --- http_config
@@ -67,7 +67,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 3: the tcp_check test which don't use the checked upstream
 --- http_config
@@ -86,7 +86,7 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
 === TEST 3: the tcp_check test with least_conn;
 --- skip_nginx
@@ -108,5 +108,5 @@ GET /
 
 --- request
 GET /
---- response_body_like: ^<(.*)>$
+--- response_body_like: ^.*$
 
