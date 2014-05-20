@@ -33,7 +33,7 @@ __DATA__
 === TEST 1: the http_check test-single server
 --- http_config
     upstream test{
-        server blog.163.com:80;
+        server www.taobao.com:80;
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
         check_http_send "GET / HTTP/1.0\r\n\r\n";
         check_http_expect_alive http_2xx http_3xx;
@@ -41,6 +41,7 @@ __DATA__
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
@@ -51,8 +52,8 @@ GET /
 === TEST 2: the http_check test-multi_server
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
         check_http_send "GET / HTTP/1.0\r\n\r\n";
@@ -70,6 +71,7 @@ GET /
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
@@ -80,16 +82,17 @@ GET /
 === TEST 3: the http_check test
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
         check_http_send "GET /foo HTTP/1.0\r\n\r\n";
-        check_http_expect_alive http_2xx http_3xx;
+        check_http_expect_alive http_2xx;
     }
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
@@ -101,12 +104,13 @@ GET /
 === TEST 4: the http_check without check directive
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
     }
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
@@ -117,8 +121,8 @@ GET /
 === TEST 5: the http_check which does not use the upstream
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
         check_http_send "GET / HTTP/1.0\r\n\r\n";
@@ -127,7 +131,8 @@ GET /
 
 --- config
     location / {
-        proxy_pass http://blog.163.com;
+        proxy_set_header host www.taobao.com;
+        proxy_pass http://www.taobao.com;
     }
 
 --- request
@@ -137,7 +142,7 @@ GET /
 === TEST 6: the http_check test-single server
 --- http_config
     upstream test{
-        server blog.163.com:80;
+        server www.taobao.com:80;
         ip_hash;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
@@ -147,6 +152,7 @@ GET /
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
@@ -157,8 +163,8 @@ GET /
 === TEST 7: the http_check test-multi_server
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
         ip_hash;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
@@ -168,6 +174,7 @@ GET /
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
@@ -178,17 +185,18 @@ GET /
 === TEST 8: the http_check test
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
         ip_hash;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
         check_http_send "GET /foo HTTP/1.0\r\n\r\n";
-        check_http_expect_alive http_2xx http_3xx;
+        check_http_expect_alive http_2xx;
     }
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
@@ -200,13 +208,14 @@ GET /
 === TEST 9: the http_check without check directive
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
         ip_hash;
     }
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
@@ -217,8 +226,8 @@ GET /
 === TEST 10: the http_check which does not use the upstream
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
         ip_hash;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
@@ -228,7 +237,8 @@ GET /
 
 --- config
     location / {
-        proxy_pass http://blog.163.com;
+        proxy_set_header host www.taobao.com;
+        proxy_pass http://www.taobao.com;
     }
 
 --- request
@@ -238,8 +248,8 @@ GET /
 === TEST 11: the http_check which does not use the upstream, with variable
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
         ip_hash;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
@@ -252,7 +262,8 @@ GET /
 --- config
     location / {
         set $test "/";
-        proxy_pass http://blog.163.com$test;
+        proxy_set_header host www.taobao.com;
+        proxy_pass http://www.taobao.com$test;
     }
 
 --- request
@@ -264,7 +275,7 @@ GET /
 2: < 1.2.2
 --- http_config
     upstream test{
-        server blog.163.com:80;
+        server www.taobao.com:80;
         least_conn;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
@@ -274,6 +285,7 @@ GET /
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
@@ -286,8 +298,8 @@ GET /
 2: < 1.2.2
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
         least_conn;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
@@ -297,6 +309,7 @@ GET /
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
@@ -309,17 +322,18 @@ GET /
 2: < 1.2.2
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
         least_conn;
 
         check interval=3000 rise=1 fall=5 timeout=2000 type=http;
         check_http_send "GET /foo HTTP/1.0\r\n\r\n";
-        check_http_expect_alive http_2xx http_3xx;
+        check_http_expect_alive http_2xx;
     }
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
@@ -333,13 +347,14 @@ GET /
 2: < 1.2.2
 --- http_config
     upstream test{
-        server blog.163.com:80;
-        server blog.163.com:81;
+        server www.taobao.com:80;
+        server www.taobao.com:81;
         least_conn;
     }
 
 --- config
     location / {
+        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 

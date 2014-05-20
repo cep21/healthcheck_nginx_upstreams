@@ -44,7 +44,7 @@ __DATA__
     location / {
         proxy_pass https://test;
     }
-   
+
 --- request
 GET /
 --- response_body_like: ^<(.*)>[\r\n\s\t]*$
