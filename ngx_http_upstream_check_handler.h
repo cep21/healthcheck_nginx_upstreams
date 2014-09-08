@@ -72,6 +72,7 @@ typedef struct {
     ngx_atomic_t down;
 
     ngx_uint_t   access_count;
+    ngx_str_t    *upstream_name;
 
     struct sockaddr  *sockaddr;
     socklen_t         socklen;

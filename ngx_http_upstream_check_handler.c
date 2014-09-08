@@ -55,9 +55,9 @@ static ngx_int_t ngx_http_check_get_shm_name(ngx_str_t *shm_name,
 static ngx_shm_zone_t * ngx_shared_memory_find(ngx_cycle_t *cycle,
         ngx_str_t *name, void *tag);
 static ngx_http_check_peer_shm_t * ngx_http_check_find_shm_peer(
-        ngx_http_check_peers_shm_t *peers_shm, ngx_addr_t *addr);
+        ngx_http_check_peers_shm_t *peers_shm, ngx_addr_t *addr,ngx_str_t *upstream_name);
 static void ngx_http_check_set_shm_peer(ngx_http_check_peer_shm_t *peer_shm,
-        ngx_http_check_peer_shm_t *opeer_shm, ngx_uint_t init_down);
+        ngx_http_check_peer_shm_t *opeer_shm, ngx_uint_t init_down,ngx_str_t *upstream_name);
 static ngx_int_t ngx_http_upstream_check_init_shm_zone(
         ngx_shm_zone_t *shm_zone, void *data);
 
@@ -1443,21 +1443,19 @@ ngx_http_upstream_check_init_shm_zone(ngx_shm_zone_t *shm_zone, void *data)
 
         if (opeers_shm) {
 
-            opeer_shm = ngx_http_check_find_shm_peer(opeers_shm,
-                                                     peer[i].peer_addr);
+            opeer_shm = ngx_http_check_find_shm_peer(opeers_shm,peer[i].peer_addr,peer[i].upstream_name);
             if (opeer_shm) {
                 ngx_log_debug1(NGX_LOG_DEBUG_HTTP, shm_zone->shm.log, 0,
                                "http upstream check: inherit opeer:%V",
                                &peer[i].peer_addr->name);
 
-                ngx_http_check_set_shm_peer(peer_shm, opeer_shm, 0);
-
+                ngx_http_check_set_shm_peer(peer_shm, opeer_shm, 0,peer[i].upstream_name);
                 continue;
             }
         }
 
         ucscf = peer[i].conf;
-        ngx_http_check_set_shm_peer(peer_shm, NULL, ucscf->default_down);
+        ngx_http_check_set_shm_peer(peer_shm, NULL, ucscf->default_down,peer[i].upstream_name);
     }
 
     peers->peers_shm = peers_shm;
@@ -1475,7 +1473,8 @@ failure:
 
 static ngx_http_check_peer_shm_t *
 ngx_http_check_find_shm_peer(ngx_http_check_peers_shm_t *peers_shm,
-                             ngx_addr_t *addr)
+                             ngx_addr_t *addr,
+			     ngx_str_t *upstream_name)
 {
     ngx_uint_t                    i;
     ngx_http_check_peer_shm_t    *peer_shm;
@@ -1484,11 +1483,12 @@ ngx_http_check_find_shm_peer(ngx_http_check_peers_shm_t *peers_shm,
 
         peer_shm = &peers_shm->peers[i];
 
-        if (addr->socklen != peer_shm->socklen) {
-            continue;
+	if (addr->socklen != peer_shm->socklen) {
+		continue;
         }
-
-        if (ngx_memcmp(addr->sockaddr, peer_shm->sockaddr, addr->socklen) == 0) {
+	
+        if (ngx_memcmp(addr->sockaddr, peer_shm->sockaddr, addr->socklen) == 0 && ngx_strcmp(upstream_name->data,peer_shm->upstream_name->data) == 0) 
+	{
             return peer_shm;
         }
     }
@@ -1500,7 +1500,8 @@ ngx_http_check_find_shm_peer(ngx_http_check_peers_shm_t *peers_shm,
 static void
 ngx_http_check_set_shm_peer(ngx_http_check_peer_shm_t *peer_shm,
                             ngx_http_check_peer_shm_t *opeer_shm,
-                            ngx_uint_t init_down)
+                            ngx_uint_t init_down,
+			    ngx_str_t *upstream_name)
 {
 
     if (opeer_shm) {
@@ -1523,6 +1524,7 @@ ngx_http_check_set_shm_peer(ngx_http_check_peer_shm_t *peer_shm,
 
         peer_shm->down         = init_down;
     }
+    peer_shm->upstream_name = upstream_name;
 }
 
 
