@@ -283,6 +283,11 @@ Note that, the nginx-sticky-module also needs the original check.patch.
 
 = Changelogs =
 
+== v0.3 ==
+* support keepalive check requests
+* fastcgi check requests
+* json/csv check status page support
+
 == v0.1 ==
 * first release
 

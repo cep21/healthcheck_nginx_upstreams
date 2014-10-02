@@ -69,7 +69,7 @@ Directives
     *   *default_down*: set initial state of backend server, default is
         down.
 
-    *   `port`: specify the check port in the backend servers. It can be
+    *   *port*: specify the check port in the backend servers. It can be
         different with the original servers port. Default the port is 0 and
         it means the same as the original backend server.
 
@@ -286,6 +286,13 @@ Notes
 TODO
 Known Issues
 Changelogs
+  v0.3
+    *   support keepalive check requests
+
+    *   fastcgi check requests
+
+    *   json/csv check status page support
+
   v0.1
     *   first release
 
