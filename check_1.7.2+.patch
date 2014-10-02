@@ -1,19 +1,13 @@
-commit 21116e1c0bba730ca59327ffba9320bc63f11462
-Author: Johan Bergström <bugs@bergstroem.nu>
-Date:   Thu Jun 19 10:17:22 2014 +1000
-
-    Add support for upstream_check to nginx 1.7.2
-
-diff --git src/http/modules/ngx_http_upstream_ip_hash_module.c src/http/modules/ngx_http_upstream_ip_hash_module.c
-index 148d73a..be9e03d 100644
---- src/http/modules/ngx_http_upstream_ip_hash_module.c
-+++ src/http/modules/ngx_http_upstream_ip_hash_module.c
+diff --git a/src/http/modules/ngx_http_upstream_ip_hash_module.c b/src/http/modules/ngx_http_upstream_ip_hash_module.c
+index 148d73a..913e395 100644
+--- a/src/http/modules/ngx_http_upstream_ip_hash_module.c
++++ b/src/http/modules/ngx_http_upstream_ip_hash_module.c
 @@ -9,6 +9,9 @@
  #include <ngx_core.h>
  #include <ngx_http.h>
  
-+#if (NGX_UPSTREAM_CHECK_MODULE)
-+#include "ngx_http_upstream_check_handler.h"
++#if (NGX_HTTP_UPSTREAM_CHECK)
++#include "ngx_http_upstream_check_module.h"
 +#endif
  
  typedef struct {
@@ -22,11 +16,11 @@ index 148d73a..be9e03d 100644
              goto next_try;
          }
  
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
 +            "get ip_hash peer, check_index: %ui",
 +             peer->check_index);
-+        if (ngx_http_check_peer_down(peer->check_index)) {
++        if (ngx_http_upstream_check_peer_down(peer->check_index)) {
 +            goto next_try;
 +        }
 +#endif
@@ -34,16 +28,16 @@ index 148d73a..be9e03d 100644
          if (peer->max_fails
              && peer->fails >= peer->max_fails
              && now - peer->checked <= peer->fail_timeout)
-diff --git src/http/modules/ngx_http_upstream_least_conn_module.c src/http/modules/ngx_http_upstream_least_conn_module.c
-index dbef95d..14e9e40 100644
---- src/http/modules/ngx_http_upstream_least_conn_module.c
-+++ src/http/modules/ngx_http_upstream_least_conn_module.c
+diff --git a/src/http/modules/ngx_http_upstream_least_conn_module.c b/src/http/modules/ngx_http_upstream_least_conn_module.c
+index dbef95d..bbabb68 100644
+--- a/src/http/modules/ngx_http_upstream_least_conn_module.c
++++ b/src/http/modules/ngx_http_upstream_least_conn_module.c
 @@ -9,6 +9,9 @@
  #include <ngx_core.h>
  #include <ngx_http.h>
  
-+#if (NGX_UPSTREAM_CHECK_MODULE)
-+#include "ngx_http_upstream_check_handler.h"
++#if (NGX_HTTP_UPSTREAM_CHECK)
++#include "ngx_http_upstream_check_module.h"
 +#endif
  
  typedef struct {
@@ -52,12 +46,12 @@ index dbef95d..14e9e40 100644
              continue;
          }
  
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
 +                "get least_conn peer, check_index: %ui",
 +                peer->check_index);
 +
-+        if (ngx_http_check_peer_down(peer->check_index)) {
++        if (ngx_http_upstream_check_peer_down(peer->check_index)) {
 +            continue;
 +        }
 +#endif
@@ -69,12 +63,12 @@ index dbef95d..14e9e40 100644
                  continue;
              }
  
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +            ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
 +                    "get least_conn peer, check_index: %ui",
 +                    peer->check_index);
 +
-+            if (ngx_http_check_peer_down(peer->check_index)) {
++            if (ngx_http_upstream_check_peer_down(peer->check_index)) {
 +                continue;
 +            }
 +#endif
@@ -82,16 +76,16 @@ index dbef95d..14e9e40 100644
              if (lcp->conns[i] * best->weight != lcp->conns[p] * peer->weight) {
                  continue;
              }
-diff --git src/http/ngx_http_upstream_round_robin.c src/http/ngx_http_upstream_round_robin.c
-index 37c835c..43ccdcf 100644
---- src/http/ngx_http_upstream_round_robin.c
-+++ src/http/ngx_http_upstream_round_robin.c
+diff --git a/src/http/ngx_http_upstream_round_robin.c b/src/http/ngx_http_upstream_round_robin.c
+index 37c835c..54aa44d 100644
+--- a/src/http/ngx_http_upstream_round_robin.c
++++ b/src/http/ngx_http_upstream_round_robin.c
 @@ -9,6 +9,9 @@
  #include <ngx_core.h>
  #include <ngx_http.h>
  
-+#if (NGX_UPSTREAM_CHECK_MODULE)
-+#include "ngx_http_upstream_check_handler.h"
++#if (NGX_HTTP_UPSTREAM_CHECK)
++#include "ngx_http_upstream_check_module.h"
 +#endif
  
  static ngx_http_upstream_rr_peer_t *ngx_http_upstream_get_peer(
@@ -100,10 +94,10 @@ index 37c835c..43ccdcf 100644
                  peer[n].fail_timeout = server[i].fail_timeout;
                  peer[n].down = server[i].down;
                  peer[n].server = server[i].name;
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +                if (!server[i].down) {
 +                    peers->peer[n].check_index =
-+                        ngx_http_check_add_peer(cf, us, &server[i].addrs[j]);
++                        ngx_http_upstream_check_add_peer(cf, us, &server[i].addrs[j]);
 +                } else {
 +                    peers->peer[n].check_index = (ngx_uint_t) NGX_ERROR;
 +                }
@@ -115,10 +109,10 @@ index 37c835c..43ccdcf 100644
                  peer[n].fail_timeout = server[i].fail_timeout;
                  peer[n].down = server[i].down;
                  peer[n].server = server[i].name;
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +                if (!server[i].down) {
 +                    backup->peer[n].check_index =
-+                        ngx_http_check_add_peer(cf, us, &server[i].addrs[j]);
++                        ngx_http_upstream_check_add_peer(cf, us, &server[i].addrs[j]);
 +                }
 +                else {
 +                    backup->peer[n].check_index = (ngx_uint_t) NGX_ERROR;
@@ -131,7 +125,7 @@ index 37c835c..43ccdcf 100644
          peer[i].current_weight = 0;
          peer[i].max_fails = 1;
          peer[i].fail_timeout = 10;
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +        peers->peer[i].check_index = (ngx_uint_t) NGX_ERROR;
 +#endif
      }
@@ -142,7 +136,7 @@ index 37c835c..43ccdcf 100644
          peer[0].max_fails = 1;
          peer[0].fail_timeout = 10;
 -
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +        peers->peer[0].check_index = (ngx_uint_t) NGX_ERROR;
 +#endif
      } else {
@@ -152,7 +146,7 @@ index 37c835c..43ccdcf 100644
              peer[i].current_weight = 0;
              peer[i].max_fails = 1;
              peer[i].fail_timeout = 10;
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +            peers->peer[i].check_index = (ngx_uint_t) NGX_ERROR;
 +#endif
          }
@@ -162,8 +156,8 @@ index 37c835c..43ccdcf 100644
              goto failed;
          }
  
-+#if (NGX_UPSTREAM_CHECK_MODULE)
-+        if (ngx_http_check_peer_down(peer->check_index)) {
++#if (NGX_HTTP_UPSTREAM_CHECK)
++        if (ngx_http_upstream_check_peer_down(peer->check_index)) {
 +            goto failed;
 +        }
 +#endif
@@ -175,8 +169,8 @@ index 37c835c..43ccdcf 100644
              continue;
          }
  
-+#if (NGX_UPSTREAM_CHECK_MODULE)
-+        if (ngx_http_check_peer_down(peer->check_index)) {
++#if (NGX_HTTP_UPSTREAM_CHECK)
++        if (ngx_http_upstream_check_peer_down(peer->check_index)) {
 +            continue;
 +        }
 +#endif
@@ -184,15 +178,15 @@ index 37c835c..43ccdcf 100644
          if (peer->max_fails
              && peer->fails >= peer->max_fails
              && now - peer->checked <= peer->fail_timeout)
-diff --git src/http/ngx_http_upstream_round_robin.h src/http/ngx_http_upstream_round_robin.h
-index 9db82a6..2fedd46 100644
---- src/http/ngx_http_upstream_round_robin.h
-+++ src/http/ngx_http_upstream_round_robin.h
+diff --git a/src/http/ngx_http_upstream_round_robin.h b/src/http/ngx_http_upstream_round_robin.h
+index 9db82a6..6e19a65 100644
+--- a/src/http/ngx_http_upstream_round_robin.h
++++ b/src/http/ngx_http_upstream_round_robin.h
 @@ -31,6 +31,10 @@ typedef struct {
      ngx_uint_t                      max_fails;
      time_t                          fail_timeout;
  
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +    ngx_uint_t                      check_index;
 +#endif
 +

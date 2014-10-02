@@ -6,8 +6,8 @@ index fd9ecbe..d3849b6 100644
  #include <ngx_core.h>
  #include <ngx_http.h>
 
-+#if (NGX_UPSTREAM_CHECK_MODULE)
-+#include "ngx_http_upstream_check_handler.h"
++#if (NGX_HTTP_UPSTREAM_CHECK)
++#include "ngx_http_upstream_check_module.h"
 +#endif
 +
 
@@ -17,11 +17,11 @@ index fd9ecbe..d3849b6 100644
 
              if (!peer->down) {
 
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +                ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
 +                               "get ip_hash peer, check_index: %ui",
 +                               peer->check_index);
-+                if (!ngx_http_check_peer_down(peer->check_index)) {
++                if (!ngx_http_upstream_check_peer_down(peer->check_index)) {
 +#endif
                  if (peer->max_fails == 0 || peer->fails < peer->max_fails) {
                      break;
@@ -30,7 +30,7 @@ index fd9ecbe..d3849b6 100644
                      peer->fails = 0;
                      break;
                  }
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +                }
 +#endif
              }
@@ -44,8 +44,8 @@ index afc9b2e..1c0344e 100644
  #include <ngx_core.h>
  #include <ngx_http.h>
 
-+#if (NGX_UPSTREAM_CHECK_MODULE)
-+#include "ngx_http_upstream_check_handler.h"
++#if (NGX_HTTP_UPSTREAM_CHECK)
++#include "ngx_http_upstream_check_module.h"
 +#endif
 
  static ngx_int_t ngx_http_upstream_cmp_servers(const void *one,
@@ -55,10 +55,10 @@ index afc9b2e..1c0344e 100644
                  peers->peer[n].weight = server[i].down ? 0 : server[i].weight;
                  peers->peer[n].current_weight = peers->peer[n].weight;
 +
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +                if (!server[i].down) {
 +                    peers->peer[n].check_index =
-+                        ngx_http_check_add_peer(cf, us, &server[i].addrs[j]);
++                        ngx_http_upstream_check_add_peer(cf, us, &server[i].addrs[j]);
 +                }
 +                else {
 +                    peers->peer[n].check_index = (ngx_uint_t) NGX_ERROR;
@@ -73,10 +73,10 @@ index afc9b2e..1c0344e 100644
                  backup->peer[n].fail_timeout = server[i].fail_timeout;
                  backup->peer[n].down = server[i].down;
 +
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +                if (!server[i].down) {
 +                    backup->peer[n].check_index =
-+                        ngx_http_check_add_peer(cf, us, &server[i].addrs[j]);
++                        ngx_http_upstream_check_add_peer(cf, us, &server[i].addrs[j]);
 +                }
 +                else {
 +                    backup->peer[n].check_index = (ngx_uint_t) NGX_ERROR;
@@ -90,7 +90,7 @@ index afc9b2e..1c0344e 100644
          peers->peer[i].current_weight = 1;
          peers->peer[i].max_fails = 1;
          peers->peer[i].fail_timeout = 10;
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +        peers->peer[i].check_index = (ngx_uint_t) NGX_ERROR;
 +#endif
      }
@@ -100,7 +100,7 @@ index afc9b2e..1c0344e 100644
          peers->peer[0].current_weight = 1;
          peers->peer[0].max_fails = 1;
          peers->peer[0].fail_timeout = 10;
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +        peers->peer[0].check_index = (ngx_uint_t) NGX_ERROR;
 +#endif
 
@@ -110,7 +110,7 @@ index afc9b2e..1c0344e 100644
              peers->peer[i].current_weight = 1;
              peers->peer[i].max_fails = 1;
              peers->peer[i].fail_timeout = 10;
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +            peers->peer[i].check_index = (ngx_uint_t) NGX_ERROR;
 +#endif
          }
@@ -121,8 +121,8 @@ index afc9b2e..1c0344e 100644
      if (rrp->peers->single) {
          peer = &rrp->peers->peer[0];
 -
-+#if (NGX_UPSTREAM_CHECK_MODULE)
-+        if (ngx_http_check_peer_down(peer->check_index)) {
++#if (NGX_HTTP_UPSTREAM_CHECK)
++        if (ngx_http_upstream_check_peer_down(peer->check_index)) {
 +            return NGX_BUSY;
 +        }
 +#endif
@@ -133,11 +133,11 @@ index afc9b2e..1c0344e 100644
 
                      if (!peer->down) {
 
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +                        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
 +                                       "get rr peer, check_index: %ui",
 +                                       peer->check_index);
-+                        if (!ngx_http_check_peer_down(peer->check_index)) {
++                        if (!ngx_http_upstream_check_peer_down(peer->check_index)) {
 +#endif
                          if (peer->max_fails == 0
                              || peer->fails < peer->max_fails)
@@ -146,7 +146,7 @@ index afc9b2e..1c0344e 100644
                              peer->fails = 0;
                              break;
                          }
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +                        }
 +#endif
 
@@ -156,11 +156,11 @@ index afc9b2e..1c0344e 100644
 
                      if (!peer->down) {
 
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +                        ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
 +                                       "get rr peer2, check_index: %ui",
 +                                       peer->check_index);
-+                        if (!ngx_http_check_peer_down(peer->check_index)) {
++                        if (!ngx_http_upstream_check_peer_down(peer->check_index)) {
 +#endif
                          if (peer->max_fails == 0
                              || peer->fails < peer->max_fails)
@@ -169,7 +169,7 @@ index afc9b2e..1c0344e 100644
                              peer->fails = 0;
                              break;
                          }
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +                        }
 +#endif
 
@@ -183,7 +183,7 @@ index 6d285ab..354cca2 100644
      ngx_uint_t                      max_fails;
      time_t                          fail_timeout;
 
-+#if (NGX_UPSTREAM_CHECK_MODULE)
++#if (NGX_HTTP_UPSTREAM_CHECK)
 +    ngx_uint_t                      check_index;
 +#endif
 +

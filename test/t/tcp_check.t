@@ -1,21 +1,3 @@
-#
-#===============================================================================
-#
-#         FILE:  tcp_check.t
-#
-#  DESCRIPTION: test
-#
-#        FILES:  ---
-#         BUGS:  ---
-#        NOTES:  ---
-#       AUTHOR:  Weibin Yao (http://yaoweibin.cn/), yaoweibin@gmail.com
-#      COMPANY:
-#      VERSION:  1.0
-#      CREATED:  03/02/2010 03:18:28 PM
-#     REVISION:  ---
-#===============================================================================
-
-
 # vi:filetype=perl
 
 use lib 'lib';
@@ -33,84 +15,194 @@ __DATA__
 === TEST 1: the tcp_check test
 --- http_config
     upstream test{
-        server www.taobao.com:80;
-        server www.taobao.com:81;
-        server www.taobao.com:82;
+        server 127.0.0.1:1970;
+        server 127.0.0.1:1971;
+        server 127.0.0.1:1972;
 
-        check interval=3000 rise=1 fall=5 timeout=1000;
+        check interval=3000 rise=1 fall=1 timeout=1000;
+    }
+
+    server {
+        listen 1970;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
     }
 
 --- config
     location / {
-        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
 --- request
 GET /
---- response_body_like: ^.*$
+--- response_body_like: ^<(.*)>$
 
 === TEST 2: the tcp_check test with ip_hash
 --- http_config
     upstream test{
-        server www.taobao.com:80;
-        server www.taobao.com:81;
-        server www.taobao.com:82;
+        server 127.0.0.1:1970;
+        server 127.0.0.1:1971;
+        server 127.0.0.1:1972;
         ip_hash;
 
-        check interval=3000 rise=1 fall=5 timeout=1000 type=tcp;
+        check interval=3000 rise=1 fall=1 timeout=1000 type=tcp;
+    }
+
+    server {
+        listen 1970;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
     }
 
 --- config
     location / {
-        proxy_set_header host www.taobao.com;
         proxy_pass http://test;
     }
 
 --- request
 GET /
---- response_body_like: ^.*$
+--- response_body_like: ^<(.*)>$
 
 === TEST 3: the tcp_check test which don't use the checked upstream
 --- http_config
     upstream test{
-        server www.taobao.com:80;
-        server www.taobao.com:81;
-        server www.taobao.com:82;
+        server 127.0.0.1:1970;
+        server 127.0.0.1:1971;
+        server 127.0.0.1:1972;
 
-        check interval=3000 rise=1 fall=5 timeout=1000;
+        check interval=3000 rise=1 fall=1 timeout=1000;
+    }
+
+    server {
+        listen 1970;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
     }
 
 --- config
     location / {
-        proxy_set_header host www.taobao.com;
-        proxy_pass http://www.taobao.com;
+        proxy_pass http://127.0.0.1:1970;
     }
 
 --- request
 GET /
---- response_body_like: ^.*$
+--- response_body_like: ^<(.*)>$
 
 === TEST 3: the tcp_check test with least_conn;
---- skip_nginx
-2: < 1.2.2
 --- http_config
     upstream test{
-        server www.taobao.com:80;
-        server www.taobao.com:81;
-        server www.taobao.com:82;
+        server 127.0.0.1:1970;
+        server 127.0.0.1:1971;
+        server 127.0.0.1:1972;
         least_conn;
 
         check interval=3000 rise=1 fall=5 timeout=1000 type=tcp;
     }
 
+    server {
+        listen 1970;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+    }
+
 --- config
-    location / {
-        proxy_set_header host www.taobao.com;
+    location / { 
         proxy_pass http://test;
     }
 
 --- request
 GET /
+--- response_body_like: ^<(.*)>$
+
+=== TEST 4: the tcp_check test with port
+--- http_config
+    upstream test{
+        server 127.0.0.1:1971;
+
+        check interval=3000 rise=1 fall=1 timeout=1000 type=tcp port=1970;
+    }
+
+    server {
+        listen 1970;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+    }
+
+--- config
+    location / { 
+        proxy_pass http://test;
+    }
+
+--- request
+GET /
+--- error_code: 502
 --- response_body_like: ^.*$
 
+=== TEST 5: the tcp_check test with port
+--- http_config
+    upstream test{
+        server 127.0.0.1:1970;
+
+        check interval=2000 rise=1 fall=1 timeout=1000 type=tcp port=1971;
+    }
+
+    server {
+        listen 1970;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+    }
+
+--- config
+    location / { 
+        proxy_pass http://test;
+    }
+
+--- request
+GET /
+--- error_code: 502
+--- response_body_like: ^.*$
+
+=== TEST 5: the tcp_check test with check_keepalive_requests configured
+--- http_config
+    upstream test{
+        server 127.0.0.1:1970;
+
+        check_keepalive_requests 10;
+        check interval=2000 rise=1 fall=1 timeout=1000 type=tcp;
+    }
+
+    server {
+        listen 1970;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+    }
+
+--- config
+    location / { 
+        proxy_pass http://test;
+    }
+
+--- request
+GET /
+--- response_body_like: ^<(.*)>$
