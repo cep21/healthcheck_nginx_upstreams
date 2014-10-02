@@ -1,5 +1,6 @@
 Name
-    nginx_http_upstream_check_module - support health check with Nginx
+    nginx_http_upstream_check_module - support upstream health check with
+    Nginx
 
 Synopsis
     http {
@@ -10,12 +11,12 @@ Synopsis
             server 192.168.0.1:80;
             server 192.168.0.2:80;
 
-            check interval=3000 rise=2 fall=5 timeout=1000;
+            check interval=5000 rise=1 fall=3 timeout=4000;
 
             #check interval=3000 rise=2 fall=5 timeout=1000 type=ssl_hello;
 
             #check interval=3000 rise=2 fall=5 timeout=1000 type=http;
-            #check_http_send "GET / HTTP/1.0\r\n\r\n";
+            #check_http_send "HEAD / HTTP/1.0\r\n\r\n";
             #check_http_expect_alive http_2xx http_3xx;
         }
 
@@ -44,7 +45,7 @@ Directives
   check
     syntax: *check interval=milliseconds [fall=count] [rise=count]
     [timeout=milliseconds] [default_down=true|false]
-    [type=tcp|http|ssl_hello|mysql|ajp]*
+    [type=tcp|http|ssl_hello|mysql|ajp|fastcgi]*
 
     default: *none, if parameters omitted, default parameters are
     interval=30000 fall=5 rise=2 timeout=1000 default_down=true type=tcp*
@@ -68,6 +69,10 @@ Directives
     *   *default_down*: set initial state of backend server, default is
         down.
 
+    *   `port`: specify the check port in the backend servers. It can be
+        different with the original servers port. Default the port is 0 and
+        it means the same as the original backend server.
+
     *   *type*: the check protocol type:
 
         1.  *tcp* is a simple tcp socket connect and peek one byte.
@@ -83,6 +88,9 @@ Directives
 
         5.  *ajp* sends a AJP Cping packet, receives and parses the AJP
             Cpong response to diagnose if the upstream server is alive.
+
+        6.  *fastcgi* send a fastcgi request, receives and parses the
+            fastcgi response to diagnose if the upstream server is alive.
 
   check_http_send
     syntax: *check_http_send http_packet*
@@ -105,10 +113,36 @@ Directives
     description: These status codes indicate the upstream server's http
     response is ok, the backend is alive.
 
+  check_keepalive_requests
+    syntax: *check_keepalive_requests num*
+
+    default: *check_keepalive_requests 1*
+
+    context: *upstream*
+
+    description: The directive specifies the number of requests sent on a
+    connection, the default vaule 1 indicates that nginx will certainly
+    close the connection after a request.
+
+  check_fastcgi_param
+    Syntax: *check_fastcgi_params parameter value*
+
+    default: see below
+
+    context: *upstream*
+
+    description: If you set the check type is fastcgi, then the check
+    function will sends this fastcgi headers to check the upstream server.
+    The default directive looks like:
+
+          check_fastcgi_param "REQUEST_METHOD" "GET";
+          check_fastcgi_param "REQUEST_URI" "/";
+          check_fastcgi_param "SCRIPT_FILENAME" "index.php";
+
   check_shm_size
     syntax: *check_shm_size size*
 
-    default: *1m*
+    default: *1M*
 
     context: *http*
 
@@ -117,7 +151,7 @@ Directives
     enlarge it with this directive.
 
   check_status
-    syntax: *check_status*
+    syntax: *check_status [html|csv|json]*
 
     default: *none*
 
@@ -125,6 +159,60 @@ Directives
 
     description: Display the health checking servers' status by HTTP. This
     directive should be set in the http block.
+
+    You can specify the default display format. The formats can be `html`,
+    `csv` or `json`. The default type is `html`. It also supports to specify
+    the format by the request argument. Suppose your `check_status` location
+    is '/status', the argument of `format` can change the display page's
+    format. You can do like this:
+
+        /status?format=html
+        /status?format=csv
+        /status?format=json
+
+    At present, you can fetch the list of servers with the same status by
+    the argument of `status`. For example:
+
+        /status?format=html&status=down
+        /status?format=csv&status=up
+
+    Below it's the sample html page:
+
+        <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+        <title>Nginx http upstream check status</title>
+            <h1>Nginx http upstream check status</h1>
+            <h2>Check upstream server number: 1, generation: 3</h2>
+                    <th>Index</th>
+                    <th>Upstream</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Rise counts</th>
+                    <th>Fall counts</th>
+                    <th>Check type</th>
+                    <th>Check port</th>
+                    <td>0</td>
+                    <td>backend</td>
+                    <td>106.187.48.116:80</td>
+                    <td>up</td>
+                    <td>39</td>
+                    <td>0</td>
+                    <td>http</td>
+                    <td>80</td>
+
+    Below it's the sample of csv page:
+
+        0,backend,106.187.48.116:80,up,46,0,http,80
+
+    Below it's the sample of json page:
+
+        {"servers": {
+          "total": 1,
+          "generation": 3,
+          "server": [
+           {"index": 0, "upstream": "backend", "name": "106.187.48.116:80", "status": "up", "rise": 58, "fall": 0, "type": "http", "port": 80}
+          ]
+         }}
 
 Installation
     Download the latest version of the release tarball of this module from
@@ -154,6 +242,12 @@ Note
 
     If you use nginx-1.2.6+ or nginx-1.3.9+, It adjusted the round robin
     module. You should use the patch named 'check_1.2.6+.patch'.
+
+    If you use nginx-1.5.12+, You should use the patch named
+    'check_1.5.12+.patch'.
+
+    If you use nginx-1.7.2+, You should use the patch named
+    'check_1.7.2+.patch'.
 
     The patch just adds the support for the official Round-Robin, Ip_hash
     and least_conn upstream module. But it's easy to expand my module to
@@ -209,9 +303,15 @@ Copyright & License
 
     This module is licensed under the BSD license.
 
-    Copyright (C) 2012 by Weibin Yao <yaoweibin@gmail.com>.
+    Copyright (C) 2014 by Weibin Yao <yaoweibin@gmail.com>
 
-    Copyright (C) 2012 by Matthieu Tourne.
+    Copyright (C) 2010-2014 Alibaba Group Holding Limited
+
+    Copyright (C) 2014 by LiangBin Li
+
+    Copyright (C) 2014 by Zhuo Yuan
+
+    Copyright (C) 2012 by Matthieu Tourne
 
     All rights reserved.
 
