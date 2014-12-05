@@ -3991,9 +3991,9 @@ ngx_http_upstream_check_find_shm_peer(ngx_http_upstream_check_peers_shm_t *p,
             continue;
         }
 
-        if ((ngx_memcmp(addr->sockaddr, peer_shm->sockaddr, addr->socklen) == 0)
-            && (ngx_strncmp(upstream_name->data, peer_shm->upstream_name->data,
-                            upstream_name->len) == 0)) {
+        if (ngx_memcmp(addr->sockaddr, peer_shm->sockaddr, addr->socklen) == 0
+            && upstream_name->len == peer_shm->upstream_name->len
+            && ngx_strncmp(upstream_name->data, peer_shm->upstream_name->data, upstream_name->len) == 0) {
             return peer_shm;
         }
     }
