@@ -1,3 +1,10 @@
+# Update
+
+This module is no longer maintained.  I recommend using https://github.com/yaoweibin/nginx_upstream_check_module instead.
+
+If you're curious about how this module used to work, read ahead:
+
+
 Healthcheck plugin for nginx.  It polls backends and if they respond with
 HTTP 200 + an optional request body, they are marked good.  Otherwise, they
 are marked bad.  Similar to haproxy/varnish health checks.
